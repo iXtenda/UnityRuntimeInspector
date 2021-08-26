@@ -436,13 +436,15 @@ namespace RuntimeInspectorNamespace
 				currentDrawer.Skin = Skin;
 		}
 
-		public void Inspect( IEnumerable<object> collection )
-			=> Inspect(collection?.Last());
-
 		public void Inspect( object obj )
+			=> Inspect( new HashSet<object> { obj } );
+
+		public void Inspect( IEnumerable<object> objects )
 		{
 			if( inspectLock )
 				return;
+
+			object obj = objects.Last();
 
 			isDirty = false;
 			Initialize();
@@ -499,7 +501,15 @@ namespace RuntimeInspectorNamespace
 					if( !go && m_inspectedObject as Component )
 						go = ( (Component) m_inspectedObject ).gameObject;
 
-					if( ConnectedHierarchy && go && !ConnectedHierarchy.Select( go.transform ) )
+					// TODO this is a temporary solution until displaying of multiple items is implemented
+					HashSet<Transform> transforms = new HashSet<Transform>();
+					foreach( object o in objects )
+					{
+						var g = o as GameObject;
+						transforms.Add( g.transform );
+					}
+
+					if( ConnectedHierarchy && go && !ConnectedHierarchy.Select( transforms ) )
 						ConnectedHierarchy.Deselect();
 				}
 				else
