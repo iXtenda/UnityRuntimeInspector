@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -62,7 +63,7 @@ namespace RuntimeInspectorNamespace
 			yield return new WaitForSecondsRealtime( holdTime );
 
 			if( m_reference && ( eventData.position - pressPosition ).sqrMagnitude < dragThreshold * dragThreshold )
-				RuntimeInspectorUtils.CreateDraggedReferenceItem( m_reference, eventData, draggedReferenceSkin, GetComponentInParent<Canvas>() );
+				RuntimeInspectorUtils.CreateDraggedReferenceItem( new HashSet<Object> { m_reference }, eventData, draggedReferenceSkin, GetComponentInParent<Canvas>() );
 		}
 	}
 }

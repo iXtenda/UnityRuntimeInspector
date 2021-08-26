@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace RuntimeInspectorNamespace
@@ -22,6 +23,9 @@ namespace RuntimeInspectorNamespace
 				rootObjects.Add( child );
 		}
 
+		public void AddChildren( IEnumerable<Transform> children )
+			=> rootObjects.Union( children );
+
 		public void InsertChild( int index, Transform child )
 		{
 			index = Mathf.Clamp( index, 0, rootObjects.Count );
@@ -36,6 +40,12 @@ namespace RuntimeInspectorNamespace
 					return;
 				}
 			}
+		}
+
+		public void InsertChildren( int index, IEnumerable<Transform> children )
+		{
+			children = children.Except( rootObjects );
+			rootObjects.InsertRange( index, children );
 		}
 
 		public void RemoveChild( Transform child )

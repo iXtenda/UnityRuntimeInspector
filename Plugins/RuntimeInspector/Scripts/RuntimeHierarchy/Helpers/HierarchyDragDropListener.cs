@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -148,9 +150,12 @@ namespace RuntimeInspectorNamespace
 			if( !hierarchy.CanReorganizeItems || hierarchy.IsInSearchMode )
 				return;
 
-			Transform droppedTransform = RuntimeInspectorUtils.GetAssignableObjectFromDraggedReferenceItem( eventData, typeof( Transform ) ) as Transform;
-			if( !droppedTransform )
+			HashSet<Object> droppedObjects = RuntimeInspectorUtils.GetAssignableObjectFromDraggedReferenceItem( eventData, typeof( Transform ) );
+			if( droppedObjects.IsNullOrEmpty() )
 				return;
+
+			// TODO this could be prettier
+			var droppedTransforms = new HashSet<Transform>( droppedObjects.Cast<Transform>() );
 
 			int newSiblingIndex = -1;
 			bool shouldFocusObjectInHierarchy = false;
@@ -158,14 +163,21 @@ namespace RuntimeInspectorNamespace
 			float contentYPos = pointerLastYPos + content.anchoredPosition.y;
 			int dataIndex = (int) contentYPos / hierarchy.Skin.LineHeight;
 			HierarchyData target = hierarchy.GetDataAt( dataIndex );
+
 			if( target == null )
 			{
 				// Dropped object onto the blank space at the bottom of the Hierarchy
-				if( droppedTransform.parent == null )
-					return;
+				foreach( var item in droppedTransforms )
+				{
+					if( item.parent == null )
+						continue;
 
-				droppedTransform.SetParent( null, true );
-				shouldFocusObjectInHierarchy = true;
+					item.SetParent( null, true );
+					shouldFocusObjectInHierarchy = true;
+				}
+
+				if( !shouldFocusObjectInHierarchy )
+					return;
 			}
 			else
 			{
@@ -178,32 +190,8 @@ namespace RuntimeInspectorNamespace
 				else
 					insertDirection = 0;
 
-				// Inserting above/below a scene or pseudo-scene is a special case
-				if( insertDirection != 0 && !( target is HierarchyDataTransform ) )
-				{
-					if( insertDirection < 0 && dataIndex > 0 )
-					{
-						// In Hierarchy AB, if inserting above B, then instead insert below A; it is easier for calculations
-						HierarchyData _target = hierarchy.GetDataAt( dataIndex - 1 );
-						if( _target != null )
-						{
-							target = _target;
-							insertDirection = 1;
-						}
-					}
-					else if( insertDirection > 0 && dataIndex < hierarchy.ItemCount - 1 )
-					{
-						// In Hierarchy AB, if inserting below A, then instead insert above B if B is a Transform; it is easier for calculations
-						HierarchyData _target = hierarchy.GetDataAt( dataIndex + 1 );
-						if( _target != null && _target is HierarchyDataTransform )
-						{
-							target = _target;
-							insertDirection = -1;
-						}
-					}
-				}
-
 				HierarchyDataRoot newScene = null;
+				HierarchyDataTransform dataTransform = null;
 				if( !( target is HierarchyDataTransform ) )
 				{
 					// Dropped onto a scene or pseudo-scene
@@ -212,10 +200,11 @@ namespace RuntimeInspectorNamespace
 				else
 				{
 					// Dropped onto a Transform
-					Transform newParent = ( (HierarchyDataTransform) target ).BoundTransform;
+					dataTransform = (HierarchyDataTransform) target;
+					Transform newParent = dataTransform.BoundTransform;
 
 					// Dropped onto itself, ignore
-					if( !newParent || droppedTransform == newParent )
+					if( !newParent || ( droppedTransforms.Count == 1 && droppedTransforms.First() == newParent ) )
 						return;
 
 					if( insertDirection != 0 )
@@ -225,34 +214,20 @@ namespace RuntimeInspectorNamespace
 							// Dropped below an expanded Transform, make dropped object a child of it
 							newSiblingIndex = 0;
 						}
-						else if( target.Depth == 1 && target.Root is HierarchyDataRootPseudoScene )
+						else if( target.Depth == 1 && target.Root is HierarchyDataRootPseudoScene pseudoScene )
 						{
 							// Dropped above or below a root pseudo-scene object, don't actually change the parent
 							if( insertDirection < 0 )
-								newSiblingIndex = ( (HierarchyDataRootPseudoScene) target.Root ).IndexOf( newParent );
+								newSiblingIndex = pseudoScene.IndexOf( newParent );
 							else
-								newSiblingIndex = ( (HierarchyDataRootPseudoScene) target.Root ).IndexOf( newParent ) + 1;
+								newSiblingIndex = pseudoScene.IndexOf( newParent ) + 1;
 
 							newParent = null;
 						}
 						else
 						{
-							// Dropped above or below a regular Transform, calculate target sibling index
-							if( insertDirection < 0 )
-								newSiblingIndex = newParent.GetSiblingIndex();
-							else
-								newSiblingIndex = newParent.GetSiblingIndex() + 1;
-
 							// To be able to drop the object at that sibling index, object's parent must also be changed
 							newParent = newParent.parent;
-
-							// If we are only changing the sibling index of the dropped Transform and not the parent, then make sure
-							// that the target sibling index won't be affected when the dropped Transform is shifted in the Hierarchy
-							if( newParent == droppedTransform.parent && ( newParent || ( target.Root is HierarchyDataRootScene && ( (HierarchyDataRootScene) target.Root ).Scene == droppedTransform.gameObject.scene ) ) )
-							{
-								if( newSiblingIndex > droppedTransform.GetSiblingIndex() )
-									newSiblingIndex--;
-							}
 						}
 					}
 
@@ -260,14 +235,15 @@ namespace RuntimeInspectorNamespace
 						newScene = target.Root;
 					else
 					{
-						if( !canDropParentOnChild )
+						if( !canDropParentOnChild || droppedTransforms.Count > 1 )
 						{
 							// Avoid setting child object as parent of the parent object
-							if( newParent.IsChildOf( droppedTransform ) )
+							if( droppedTransforms.Any( t => newParent.IsChildOf( t ) ) )
 								return;
 						}
 						else
 						{
+							Transform droppedTransform = droppedTransforms.First();
 							// First, set the child object's parent as dropped object's current parent so that
 							// the dropped object can then become a child of the former child object
 							Transform curr = newParent;
@@ -276,13 +252,12 @@ namespace RuntimeInspectorNamespace
 
 							if( curr.parent == droppedTransform )
 							{
-								if( droppedTransform.parent == null && target.Root is HierarchyDataRootPseudoScene )
+								if( droppedTransform.parent == null && target.Root is HierarchyDataRootPseudoScene pseudoScene )
 								{
 									// Dropped object was a root pseudo-scene object, swap the child and parent objects in the pseudo-scene, as well
 									if( !canAddObjectsToPseudoScenes )
 										return;
 
-									HierarchyDataRootPseudoScene pseudoScene = (HierarchyDataRootPseudoScene) target.Root;
 									pseudoScene.InsertChild( pseudoScene.IndexOf( newParent ), curr );
 									pseudoScene.RemoveChild( newParent );
 								}
@@ -295,40 +270,76 @@ namespace RuntimeInspectorNamespace
 							}
 						}
 
-						droppedTransform.SetParent( newParent, true );
+						foreach( var item in droppedTransforms )
+						{
+							item.SetParent( newParent, true );
+							item.SetAsLastSibling();
+						}
 					}
 				}
 
 				if( newScene != null )
 				{
-					if( newScene is HierarchyDataRootPseudoScene )
+					// Inserting above/below a scene or pseudo-scene is a special case
+					if( insertDirection != 0 && !( target is HierarchyDataTransform ) )
+					{
+						if( insertDirection < 0 && dataIndex > 0 )
+						{
+							// In Hierarchy AB, if inserting above B, then instead insert below A; it is easier for calculations
+							HierarchyData _target = hierarchy.GetDataAt( dataIndex - 1 );
+							if( _target != null )
+							{
+								target = _target;
+								insertDirection = 1;
+							}
+						}
+						else if( insertDirection > 0 && dataIndex < hierarchy.ItemCount - 1 )
+						{
+							// In Hierarchy AB, if inserting below A, then instead insert above B if B is a Transform; it is easier for calculations
+							HierarchyData _target = hierarchy.GetDataAt( dataIndex + 1 );
+							if( _target != null && _target is HierarchyDataTransform )
+							{
+								target = _target;
+								insertDirection = -1;
+							}
+						}
+					}
+
+					if( newScene is HierarchyDataRootPseudoScene pseudoScene )
 					{
 						if( !canAddObjectsToPseudoScenes )
 							return;
 
 						// Add object to pseudo-scene
 						if( newSiblingIndex < 0 )
-							( (HierarchyDataRootPseudoScene) newScene ).AddChild( droppedTransform );
+							pseudoScene.AddChildren( droppedTransforms );
 						else
 						{
-							( (HierarchyDataRootPseudoScene) newScene ).InsertChild( newSiblingIndex, droppedTransform );
+							pseudoScene.InsertChildren( newSiblingIndex, droppedTransforms );
 
 							// Don't try to change the actual sibling index of the Transform
 							newSiblingIndex = -1;
 							target = newScene;
 						}
 					}
-					else if( newScene is HierarchyDataRootScene )
+					else if( newScene is HierarchyDataRootScene rootScene )
 					{
-						if( droppedTransform.parent != null )
-							droppedTransform.SetParent( null, true );
-
 						// Change dropped object's scene
-						Scene scene = ( (HierarchyDataRootScene) newScene ).Scene;
-						if( droppedTransform.gameObject.scene != scene )
-							SceneManager.MoveGameObjectToScene( droppedTransform.gameObject, scene );
+						Scene scene = rootScene.Scene;
 
-						if( newSiblingIndex < 0 )
+						foreach( var item in droppedTransforms )
+						{
+							// Only root GameObject's can be moved
+							if( item.parent != null )
+								item.SetParent( null, true );
+
+							if( item.gameObject.scene != scene )
+								SceneManager.MoveGameObjectToScene( item.gameObject, scene );
+
+							item.SetAsLastSibling();
+						}
+
+						if( newSiblingIndex < 0 && insertDirection == 0)
 						{
 							// If object was dropped onto the scene, add it to the bottom of the scene
 							newSiblingIndex = scene.rootCount + 1;
@@ -337,14 +348,31 @@ namespace RuntimeInspectorNamespace
 					}
 				}
 
+				if( newSiblingIndex == -1 && dataTransform != null )
+				{
+					newSiblingIndex = insertDirection switch
+					{
+						-1 => dataTransform.BoundTransform.GetSiblingIndex(),
+						0 => 0,
+						1 => dataTransform.BoundTransform.GetSiblingIndex() + 1,
+						_ => throw new System.NotSupportedException( "Insert Direction must be a value between -1 and 1" )
+					};
+				}
+
 				if( newSiblingIndex >= 0 )
-					droppedTransform.SetSiblingIndex( newSiblingIndex );
+				{
+					// TODO this does not guarantee the correct order of the dropped items
+					foreach( var item in droppedTransforms )
+					{
+						item.SetSiblingIndex( newSiblingIndex );
+					}
+				}
 			}
 
 			// Selecting the object in Hierarchy automatically expands collapsed parent entries and snaps the scroll view to the
 			// selected object. However, this snapping can be distracting, so don't select the object unless it is necessary
 			if( shouldFocusObjectInHierarchy || ( newSiblingIndex < 0 && !target.IsExpanded ) )
-				hierarchy.Select( droppedTransform, true );
+				hierarchy.Select( droppedTransforms, true );
 			else
 				hierarchy.Refresh();
 		}
@@ -354,7 +382,7 @@ namespace RuntimeInspectorNamespace
 			if( !hierarchy.CanReorganizeItems || hierarchy.IsInSearchMode )
 				return;
 
-			if( !RuntimeInspectorUtils.GetAssignableObjectFromDraggedReferenceItem( eventData, typeof( Transform ) ) )
+			if( RuntimeInspectorUtils.GetAssignableObjectFromDraggedReferenceItem( eventData, typeof( Transform ) ).IsNullOrEmpty() )
 				return;
 
 			pointer = eventData;

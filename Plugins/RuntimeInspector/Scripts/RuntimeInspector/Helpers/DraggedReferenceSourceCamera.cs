@@ -122,7 +122,7 @@ namespace RuntimeInspectorNamespace
 									button = PointerEventData.InputButton.Left
 								};
 
-								draggedReference = RuntimeInspectorUtils.CreateDraggedReferenceItem( hitObject, draggingPointer, draggedReferenceSkin, draggedReferenceCanvas );
+								draggedReference = RuntimeInspectorUtils.CreateDraggedReferenceItem( new HashSet<Object> { hitObject }, draggingPointer, draggedReferenceSkin, draggedReferenceCanvas );
 								if( !draggedReference )
 								{
 									pointerDown = false;

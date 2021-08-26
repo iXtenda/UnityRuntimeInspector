@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.EventSystems;
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
 using UnityEngine.InputSystem;
@@ -8,8 +9,8 @@ namespace RuntimeInspectorNamespace
 {
 	public class DraggedReferenceItem : PopupBase, IDragHandler, IEndDragHandler
 	{
-		private Object m_reference;
-		public Object Reference { get { return m_reference; } }
+		private HashSet<Object> m_reference;
+		public HashSet<Object> Reference { get { return m_reference; } }
 
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
 		// In new Input System, it is just not possible to change a PointerEventData's pointerDrag and dragging variables inside Update/LateUpdate,
@@ -17,10 +18,13 @@ namespace RuntimeInspectorNamespace
 		// with the new Input System and track its PointerEventData manually using Pointer.current
 		internal static DraggedReferenceItem InstanceItem { get; private set; }
 
-		private readonly System.Collections.Generic.List<RaycastResult> hoveredUIElements = new System.Collections.Generic.List<RaycastResult>( 4 );
+		private readonly List<RaycastResult> hoveredUIElements = new List<RaycastResult>( 4 );
 #endif
 
-		public void SetContent( Object reference, PointerEventData draggingPointer )
+		// Expose this to editor
+		private const int MAX_DISPLAYED_ITEMS = 3;
+
+		public void SetContent( HashSet<Object> reference, PointerEventData draggingPointer )
 		{
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
 			if( InstanceItem )
@@ -37,7 +41,17 @@ namespace RuntimeInspectorNamespace
 #endif
 
 			m_reference = reference;
-			label.text = reference.GetNameWithType();
+
+			var enumerator = reference.GetEnumerator();
+			enumerator.MoveNext();
+			string text = enumerator.Current.GetNameWithType();
+
+			for( int i = 1; enumerator.MoveNext() && i < MAX_DISPLAYED_ITEMS; i++ )
+				text += "\n" + enumerator.Current.GetNameWithType();
+
+			if( reference.Count > MAX_DISPLAYED_ITEMS )
+				text += "\n...";
+			label.text = text;
 
 			draggingPointer.pointerDrag = gameObject;
 			draggingPointer.dragging = true;

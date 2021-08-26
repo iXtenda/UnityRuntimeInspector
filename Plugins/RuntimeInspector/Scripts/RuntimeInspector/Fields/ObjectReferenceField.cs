@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -90,9 +91,9 @@ namespace RuntimeInspectorNamespace
 
 		public void OnDrop( PointerEventData eventData )
 		{
-			Object assignableObject = RuntimeInspectorUtils.GetAssignableObjectFromDraggedReferenceItem( eventData, BoundVariableType );
-			if( assignableObject != null )
-				OnReferenceChanged( assignableObject );
+ 			var assignableObjects = RuntimeInspectorUtils.GetAssignableObjectFromDraggedReferenceItem( eventData, BoundVariableType );
+			if( assignableObjects != null && assignableObjects.Count == 1 )
+				OnReferenceChanged( assignableObjects.First() );
 		}
 
 		protected override void OnSkinChanged()

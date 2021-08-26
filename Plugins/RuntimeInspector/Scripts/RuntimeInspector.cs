@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -11,7 +12,7 @@ using Object = UnityEngine.Object;
 
 namespace RuntimeInspectorNamespace
 {
-	public class RuntimeInspector : SkinnedWindow
+    public class RuntimeInspector : SkinnedWindow
 	{
 		public enum VariableVisibility { None = 0, SerializableOnly = 1, All = 2 }
 		public enum HeaderVisibility { Collapsible = 0, AlwaysVisible = 1, Hidden = 2 };
@@ -434,6 +435,9 @@ namespace RuntimeInspectorNamespace
 			if( IsBound && !isDirty )
 				currentDrawer.Skin = Skin;
 		}
+
+		public void Inspect( IEnumerable<object> collection )
+			=> Inspect(collection?.Last());
 
 		public void Inspect( object obj )
 		{

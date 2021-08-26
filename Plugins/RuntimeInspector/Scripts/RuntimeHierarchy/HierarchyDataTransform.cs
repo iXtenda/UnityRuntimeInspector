@@ -16,17 +16,17 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		public override int ChildCount { get { return ( !isSearchEntry && transform ) ? transform.childCount : 0; } }
+		public override int ChildCount { get { return ( !IsSearchEntry && transform ) ? transform.childCount : 0; } }
 		public override Transform BoundTransform { get { return transform; } }
 		public override bool IsActive { get { return transform ? transform.gameObject.activeInHierarchy : true; } }
 
 		private Transform transform;
-		private bool isSearchEntry;
+		public bool IsSearchEntry { get; private set; }
 
 		public void Initialize( Transform transform, bool isSearchEntry )
 		{
 			this.transform = transform;
-			this.isSearchEntry = isSearchEntry;
+			this.IsSearchEntry = isSearchEntry;
 		}
 
 		public override Transform GetChild( int index )
