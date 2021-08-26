@@ -154,8 +154,7 @@ namespace RuntimeInspectorNamespace
 			if( droppedObjects.IsNullOrEmpty() )
 				return;
 
-			// TODO this could be prettier
-			var droppedTransforms = new HashSet<Transform>( droppedObjects.Cast<Transform>() );
+			var droppedTransforms = droppedObjects.Cast<Transform>();
 
 			int newSiblingIndex = -1;
 			bool shouldFocusObjectInHierarchy = false;
@@ -200,11 +199,10 @@ namespace RuntimeInspectorNamespace
 				else
 				{
 					// Dropped onto a Transform
-					dataTransform = (HierarchyDataTransform) target;
 					Transform newParent = dataTransform.BoundTransform;
 
 					// Dropped onto itself, ignore
-					if( !newParent || ( droppedTransforms.Count == 1 && droppedTransforms.First() == newParent ) )
+					if( !newParent || ( droppedTransforms.Count() == 1 && droppedTransforms.First() == newParent ) )
 						return;
 
 					if( insertDirection != 0 )
@@ -235,7 +233,7 @@ namespace RuntimeInspectorNamespace
 						newScene = target.Root;
 					else
 					{
-						if( !canDropParentOnChild || droppedTransforms.Count > 1 )
+						if( !canDropParentOnChild || droppedTransforms.Count() > 1 )
 						{
 							// Avoid setting child object as parent of the parent object
 							if( droppedTransforms.Any( t => newParent.IsChildOf( t ) ) )
