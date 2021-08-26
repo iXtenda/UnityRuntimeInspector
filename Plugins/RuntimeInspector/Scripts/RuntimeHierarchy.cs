@@ -875,9 +875,6 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		public bool Select( Transform selection, bool forceSelection = false )
-			=> Select( new HashSet<Transform> { selection }, forceSelection );
-
 		public bool Select( IEnumerable<Transform> selection, bool forceSelection = false )
 		{
 			if( selection.IsNullOrEmpty() )
@@ -895,37 +892,33 @@ namespace RuntimeInspectorNamespace
 				// Make sure that the contents of the hierarchy are up-to-date
 				Refresh();
 
-				// TODO try to foucs all items instead of the last one only
-				return FocusItem( selection.Last() );
-			}
-		}
-
-		private bool FocusItem( Transform selection )
-		{
-			Scene selectionScene = selection.gameObject.scene;
-			for( int i = 0; i < sceneData.Count; i++ )
-			{
-				HierarchyDataRoot data = sceneData[i];
-				if( ( data is HierarchyDataRootPseudoScene ) || ( (HierarchyDataRootScene) data ).Scene == selectionScene )
+				// Focus the last element of the selection
+				Transform last = selection.Last();
+				Scene selectionScene = last.gameObject.scene;
+				for( int i = 0; i < sceneData.Count; i++ )
 				{
-					HierarchyDataTransform selectionItem = sceneData[i].FindTransform( selection );
-					if( selectionItem != null )
+					HierarchyDataRoot data = sceneData[i];
+					if( ( data is HierarchyDataRootPseudoScene ) || ( (HierarchyDataRootScene) data ).Scene == selectionScene )
 					{
-						RefreshListView();
+						HierarchyDataTransform selectionItem = sceneData[i].FindTransform( last );
+						if( selectionItem != null )
+						{
+							RefreshListView();
 
-						// Focus on selected HierarchyItem
-						int itemIndex = selectionItem.AbsoluteIndex;
-						for( int j = 0; j < i; j++ )
-							itemIndex += sceneData[i].Height;
+							// Focus on selected HierarchyItem
+							int itemIndex = selectionItem.AbsoluteIndex;
+							for( int j = 0; j < i; j++ )
+								itemIndex += sceneData[i].Height;
 
-						LayoutRebuilder.ForceRebuildLayoutImmediate( drawArea );
-						scrollView.verticalNormalizedPosition = Mathf.Clamp01( 1f - (float) itemIndex / totalItemCount );
+							LayoutRebuilder.ForceRebuildLayoutImmediate( drawArea );
+							scrollView.verticalNormalizedPosition = Mathf.Clamp01( 1f - (float) itemIndex / totalItemCount );
 
-						return true;
+							return true;
+						}
 					}
 				}
+				return false;
 			}
-			return false;
 		}
 
 		public void Deselect()

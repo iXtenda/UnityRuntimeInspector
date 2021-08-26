@@ -262,7 +262,6 @@ namespace RuntimeInspectorNamespace
 
 			DraggedReferenceItem draggedReference = draggingPointer.pointerDrag.GetComponent<DraggedReferenceItem>();
 #endif
-			// TODO refactor this
 			if( draggedReference && !draggedReference.Reference.IsNullOrEmpty() )
 			{
 				if( draggedReference.Reference.All( r => assignableType.IsAssignableFrom( r.GetType() ) ) )
