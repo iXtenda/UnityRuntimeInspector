@@ -199,6 +199,7 @@ namespace RuntimeInspectorNamespace
 				else
 				{
 					// Dropped onto a Transform
+					dataTransform = (HierarchyDataTransform) target;
 					Transform newParent = dataTransform.BoundTransform;
 
 					// Dropped onto itself, ignore
