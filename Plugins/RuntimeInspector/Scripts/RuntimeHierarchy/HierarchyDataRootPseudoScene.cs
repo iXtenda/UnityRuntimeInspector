@@ -44,8 +44,17 @@ namespace RuntimeInspectorNamespace
 
 		public void InsertChildren( int index, IEnumerable<Transform> children )
 		{
-			children = children.Except( rootObjects );
+			index = Mathf.Clamp( index, 0, rootObjects.Count );
 			rootObjects.InsertRange( index, children );
+
+			int max = index + children.Count();
+
+			// If the object was already in the list, remove the old copy from the list
+			for( int i = rootObjects.Count - 1; i >= 0; i-- )
+			{
+				if( ( i < index || i > max ) && children.Contains( rootObjects[i] ) )
+					rootObjects.RemoveAt( i );
+			}
 		}
 
 		public void RemoveChild( Transform child )
