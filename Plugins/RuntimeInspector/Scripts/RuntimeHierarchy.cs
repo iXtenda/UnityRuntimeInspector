@@ -660,6 +660,22 @@ namespace RuntimeInspectorNamespace
 					// Select only clicked item
 					SelectSingleItem( clickedTransform );
 				}
+				else if( IsMultiSelectModifierHeld() )
+				{
+					// Multi select
+					if( m_currentSelection.Contains( clickedTransform ) )
+						RemoveFromSelected( clickedTransform );
+					else
+						AddToSelected( clickedTransform );
+
+					lastClickTime = Time.realtimeSinceStartup;
+				}
+				else if( IsRangeSelectModifierHeld() && lastSelectedData != null )
+				{
+					// Range select
+					SelectRange( drawer );
+					lastClickTime = Time.realtimeSinceStartup;
+				}
 				else if( m_currentSelection.Contains( clickedTransform ) )
 				{
 					// Update double click
@@ -677,18 +693,6 @@ namespace RuntimeInspectorNamespace
 
 					// Deselect all except clicked
 					SelectSingleItem( clickedTransform );
-				}
-				else if( IsMultiSelectModifierHeld() )
-				{
-					// Multi select
-					AddToSelected( clickedTransform );
-					lastClickTime = Time.realtimeSinceStartup;
-				}
-				else if( IsRangeSelectModifierHeld() && lastSelectedData != null )
-				{
-					// Range select
-					SelectRange( drawer );
-					lastClickTime = Time.realtimeSinceStartup;
 				}
 				else
 				{
@@ -759,10 +763,28 @@ namespace RuntimeInspectorNamespace
 				{
 					Transform drawerTransform = drawers[i].Data.BoundTransform;
 					if( drawerTransform == clickedTransform && clickedTransform )
+					{
 						drawers[i].IsSelected = true;
+						break;
+					}
 				}
 			}
 			m_currentSelection.Add( clickedTransform );
+		}
+
+		private void RemoveFromSelected(Transform clickedTransform)
+		{
+			// Remove clicked from selection
+			for( int i = drawers.Count -1; i >= 0; i-- )
+			{
+				Transform drawerTransform = drawers[i].Data.BoundTransform;
+				if( drawerTransform == clickedTransform && clickedTransform )
+				{
+					drawers[i].IsSelected = false;
+					break;
+				}
+			}
+			m_currentSelection.Remove( clickedTransform );
 		}
 
 		private void SelectRange( HierarchyField clickedDrawer )
