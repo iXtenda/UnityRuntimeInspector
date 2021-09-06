@@ -129,6 +129,8 @@ namespace RuntimeInspectorNamespace
 		private KeyCode multiSelectModifier = KeyCode.LeftControl;
 		[SerializeField]
 		private KeyCode rangeSelectModifier = KeyCode.LeftShift;
+		[SerializeField]
+		private KeyCode childSelectModifier = KeyCode.LeftAlt;
 #endif
 
 		[SerializeField]
@@ -657,8 +659,7 @@ namespace RuntimeInspectorNamespace
 				Transform clickedTransform = drawer.Data.BoundTransform;
 				if( !m_currentSelection )
 				{
-					// Select only clicked item
-					SelectSingleItem( clickedTransform );
+					SelectSingleOrChildren( clickedTransform );
 				}
 				else if( IsMultiSelectModifierHeld() )
 				{
@@ -676,29 +677,27 @@ namespace RuntimeInspectorNamespace
 					SelectRange( drawer );
 					lastClickTime = Time.realtimeSinceStartup;
 				}
-				else if( m_currentSelection.Contains( clickedTransform ) )
-				{
-					// Update double click
-					if( OnItemDoubleClicked != null )
-					{
-						if( Time.realtimeSinceStartup - lastClickTime <= m_doubleClickThreshold )
-						{
-							lastClickTime = 0f;
-							if( clickedTransform )
-								OnItemDoubleClicked( clickedTransform );
-						}
-						else
-							lastClickTime = Time.realtimeSinceStartup;
-					}
-
-					// Deselect all except clicked
-					SelectSingleItem( clickedTransform );
-				}
 				else
 				{
-					// Select only clicked item
-					SelectSingleItem( clickedTransform );
-					lastClickTime = Time.realtimeSinceStartup;
+					if( m_currentSelection.Contains( clickedTransform ) )
+					{
+						// Update double click
+						if( OnItemDoubleClicked != null )
+						{
+							if( Time.realtimeSinceStartup - lastClickTime <= m_doubleClickThreshold )
+							{
+								lastClickTime = 0f;
+								if( clickedTransform )
+									OnItemDoubleClicked( clickedTransform );
+							}
+							else
+								lastClickTime = Time.realtimeSinceStartup;
+						}
+					}
+					else
+						lastClickTime = Time.realtimeSinceStartup;
+
+					SelectSingleOrChildren( clickedTransform );
 				}
 
 				if( m_isInSearchMode && clickedTransform )
@@ -851,6 +850,44 @@ namespace RuntimeInspectorNamespace
 			}
 
 			m_currentSelection.UnionWith( selection );
+		}
+
+		private void SelectSingleOrChildren( Transform clickedTransform )
+		{
+			if( IsChildSelectModifierHeld() )
+				SelectWithChildren( clickedTransform );
+			else
+				SelectSingleItem( clickedTransform );
+		}
+
+		public void SelectWithChildren( Transform clickedTransform )
+		{
+			var selection = new HashSet<Transform> { clickedTransform };
+			GetChildrenRecursive( clickedTransform, selection );
+			
+			for (int i = drawers.Count - 1; i >= 0; i-- )
+			{
+				Transform drawerTransform = drawers[i].Data.BoundTransform;
+				if( drawerTransform && selection.Contains( drawerTransform ) )
+					drawers[i].IsSelected = true;
+				else
+					drawers[i].IsSelected = false;
+			}
+
+			m_currentSelection = new ObservableHashSet<Transform>( selection );
+		}
+
+		private void GetChildrenRecursive(Transform transform, HashSet<Transform> collection)
+		{
+			foreach( Transform child in transform )
+			{
+				if( !RuntimeInspectorUtils.IgnoredTransformsInHierarchy.Contains( child )
+					&& ( GameObjectFilter == null || GameObjectFilter.Invoke( child ) ) )
+				{
+					collection.Add( child );
+					GetChildrenRecursive( child, collection );
+				}
+			}
 		}
 
 		internal HierarchyData GetDataAt( int index )
@@ -1262,6 +1299,16 @@ namespace RuntimeInspectorNamespace
 			return keyboard[rangeSelectModifier].isPressed;
 #else
 			return Input.GetKey( rangeSelectModifier );
+#endif
+		}
+
+		private bool IsChildSelectModifierHeld()
+		{
+#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+			var keyboard = UnityEngine.InputSystem.Keyboard.current;
+			return keyboard[childSelectModifier].isPressed;
+#else
+			return Input.GetKey( childSelectModifier );
 #endif
 		}
 	}
