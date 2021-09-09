@@ -201,9 +201,10 @@ namespace RuntimeInspectorNamespace
 					// Dropped onto a Transform
 					dataTransform = (HierarchyDataTransform) target;
 					Transform newParent = dataTransform.BoundTransform;
+					int droppedCount = droppedTransforms.Count();
 
 					// Dropped onto itself, ignore
-					if( !newParent || ( droppedTransforms.Count() == 1 && droppedTransforms.First() == newParent ) )
+					if( !newParent || ( droppedCount == 1 && droppedTransforms.First() == newParent ) )
 						return;
 
 					if( insertDirection != 0 )
@@ -234,7 +235,7 @@ namespace RuntimeInspectorNamespace
 						newScene = target.Root;
 					else
 					{
-						if( !canDropParentOnChild || droppedTransforms.Count() > 1 )
+						if( !canDropParentOnChild || droppedCount > 1 )
 						{
 							// Avoid setting child object as parent of the parent object
 							if( droppedTransforms.Any( t => newParent.IsChildOf( t ) ) )
@@ -347,6 +348,7 @@ namespace RuntimeInspectorNamespace
 					}
 				}
 
+				// TODO: Calling this here results in the pseusdo scenes also reordering their children
 				if( newSiblingIndex == -1 && dataTransform != null )
 				{
 					newSiblingIndex = insertDirection switch
