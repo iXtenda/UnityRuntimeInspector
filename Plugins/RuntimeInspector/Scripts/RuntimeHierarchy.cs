@@ -874,7 +874,7 @@ namespace RuntimeInspectorNamespace
 					drawers[i].IsSelected = false;
 			}
 
-			m_currentSelection = new ObservableHashSet<Transform>( selection );
+			CurrentSelection = new ObservableHashSet<Transform>( selection );
 		}
 
 		private void GetChildrenRecursive(Transform transform, HashSet<Transform> collection)

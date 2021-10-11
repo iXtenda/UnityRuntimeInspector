@@ -16,7 +16,23 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		public override int ChildCount { get { return ( !IsSearchEntry && transform ) ? transform.childCount : 0; } }
+		public override int ChildCount
+		{
+			get
+			{
+				if( IsSearchEntry || !transform )
+					return 0;
+
+				for( int i = transform.childCount - 1; i >= 0; i-- )
+				{
+					Transform child = transform.GetChild( i );
+					if( !RuntimeInspectorUtils.IgnoredTransformsInHierarchy.Contains( child ) && ( Root.Hierarchy.GameObjectFilter == null || Root.Hierarchy.GameObjectFilter.Invoke( child ) ) )
+						return transform.childCount;
+				}
+
+				return 0;
+			}
+		}
 		public override Transform BoundTransform { get { return transform; } }
 		public override bool IsActive { get { return transform ? transform.gameObject.activeInHierarchy : true; } }
 
