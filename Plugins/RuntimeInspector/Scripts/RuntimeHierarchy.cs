@@ -206,7 +206,7 @@ namespace RuntimeInspectorNamespace
 		private RectTransform drawArea;
 
 		[SerializeField]
-		private RecycledListView listView;
+		protected RecycledListView listView;
 
 		[SerializeField]
 		private Image background;
@@ -239,7 +239,7 @@ namespace RuntimeInspectorNamespace
 		private HierarchyDragDropListener dragDropListener;
 
 		[SerializeField]
-		private HierarchyField drawerPrefab;
+		protected HierarchyField drawerPrefab;
 
 		[SerializeField]
 		private Sprite m_sceneDrawerBackground;
@@ -252,7 +252,7 @@ namespace RuntimeInspectorNamespace
 
 		private static int aliveHierarchies = 0;
 
-		private readonly List<HierarchyField> drawers = new List<HierarchyField>( 32 );
+		protected readonly List<HierarchyField> drawers = new List<HierarchyField>( 32 );
 
 		private readonly List<HierarchyDataRoot> sceneData = new List<HierarchyDataRoot>( 8 );
 		private readonly List<HierarchyDataRoot> searchSceneData = new List<HierarchyDataRoot>( 8 );
