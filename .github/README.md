@@ -56,7 +56,7 @@ This plugin supports Unity's new Input System but it requires some manual modifi
 
 ![screenshot](images/img2.png)
 
-- Visual appearance of the inspector and the hierarchy can be tweaked by changing their **Skin**. There are two premade skins included in the **Skins** directory: *LightSkin* and *DarkSkin* (pro-only.. meh, just kiddin'). You can create your own skins using the **Create-RuntimeInspector-UI Skin** context menu
+- Visual appearance of the inspector and the hierarchy can be tweaked by changing their **Skin**. There are two premade skins included in the **Skins** directory: *LightSkin* and *DarkSkin*. You can create your own skins using the **Assets-Create-yasirkula-RuntimeInspector-UI Skin** context menu
 
 ![screenshot](images/img3.png)
 
@@ -78,7 +78,7 @@ RuntimeInspector works similar to the editor Inspector. It can expose commonly u
 - **Nest Limit**: imagine exposing a linked list. This variable defines how many nodes you can expose in the inspector starting from the initial node until the inspector stops exposing any further nodes
 - **Inspected Object Header Visibility**: if the inspected object has a collapsible header, determines that header's visibility
 - **Pool Capacity**: the UI elements are pooled to avoid unnecessary *Instantiate* and *Destroy* calls. This value defines the pool capacity for each of the UI elements individually. On standalone platforms, you can increase this value for better performance
-- **Settings**: an array of settings for the inspector. A new settings asset can be created using the **Create-RuntimeInspector-Settings** context menu. A setting asset stores 4 different things:
+- **Settings**: an array of settings for the inspector. A new settings asset can be created using the **Assets-Create-yasirkula-RuntimeInspector-Settings** context menu. A setting asset stores 4 different things:
   - **Standard Drawers** and **Reference Drawers**: a drawer is a prefab used to expose a single variable in the inspector. For variables that extend **UnityEngine.Object**, a reference drawer is created and for other variables, a standard drawer is created
     - While searching for a suitable drawer for a variable, the corresponding drawers list is traversed from bottom to top until a drawer that supports that variable type is found. If such a drawer is not found, that variable is not exposed
   - **Hidden Variables**: allows you to hide some variables from the inspector for a given type and all the types that extend/implement it. You can enter asterisk character (\*) to hide all the variables for that type
@@ -159,13 +159,32 @@ private object OnlyInspectObjectsWithRenderer( object previousInspectedObject, o
 ```
 
 - You can register to the `ComponentFilter` delegate of the inspector to filter the list of visible components of a GameObject in the inspector (e.g. hide some components)
+
+```csharp
+runtimeInspector.ComponentFilter = ( GameObject gameObject, List<Component> components ) =>
+{
+    // Simply remove the undesired Components from the 'components' list
+};
+```
+
 - You can register to the `GameObjectFilter` delegate of the hierarchy to hide some objects from the hierarchy (or, you can add those objects to `RuntimeInspectorUtils.IgnoredTransformsInHierarchy` and they will be hidden from all hierarchies; just make sure to remove them from this *HashSet* before they are destroyed)
+
+```csharp
+runtimeHierarchy.GameObjectFilter = ( Transform obj ) =>
+{
+    if( obj.CompareTag( "Main Camera" ) )
+        return false; // Hide Main Camera from hierarchy
+ 
+    return true;
+};
+```
+
 - You can register to the `OnItemDoubleClicked` event of the hierarchy to get notified when an object in the hierarchy is double clicked
 - You can add **RuntimeInspectorButton** attribute to your functions to expose them as buttons in the inspector. These buttons appear when an object of that type is inspected. This attribute takes 3 parameters:
   - **string label**: the text that will appear on the button
-  - **bool isInitializer**: if set to true, and if the function returns an object that is assignable to the type that the function was defined in, the resulting value of the function will be assigned back to the inspected object. In other words, this function can be used to initialize null objects or change the variables of alive objects
+  - **bool isInitializer**: if set to true and the function returns an object that is assignable to the type that the function was defined in, the resulting value of the function will be assigned back to the inspected object. In other words, this function can be used to initialize null objects or change the variables of structs
   - **ButtonVisibility visibility**: determines when the button can be visible. Buttons with `ButtonVisibility.InitializedObjects` can appear only when the inspected object is not null whereas buttons with `ButtonVisibility.UninitializedObjects` can appear only when the inspected object is null. You can use `ButtonVisibility.InitializedObjects | ButtonVisibility.UninitializedObjects` to always show the button in the inspector
-- Although you can't add *RuntimeInspectorButton* attribute to Unity's built-in functions, you can show buttons under built-in Unity types via **extension methods**. You must write all such extension methods in a single static class, mark the methods with *RuntimeInspectorButton* attribute and then introduce these functions to the RuntimeInspector as following: `RuntimeInspectorUtils.ExposedExtensionMethodsHolder = typeof( TheScriptThatContainsTheExtensionsMethods );`
+- Although you can't add *RuntimeInspectorButton* attribute to Unity's built-in functions, you can show buttons under built-in Unity types via **extension methods**. You must write all such extension methods in a single static class, mark the methods with *RuntimeInspectorButton* attribute and then introduce these functions to the RuntimeInspector as follows: `RuntimeInspectorUtils.ExposedExtensionMethodsHolder = typeof( TheScriptThatContainsTheExtensionsMethods );`
 
 ### F.1. PSEUDO-SCENES
 
@@ -402,7 +421,7 @@ public class MeshRendererEditor : IRuntimeInspectorCustomEditor
 		// Instead of exposing the MeshRenderer's properties, expose its sharedMaterial's properties
 		ExpandableInspectorField materialField = (ExpandableInspectorField) parent.CreateDrawer( typeof( Material ), "", () => renderer.sharedMaterial, ( value ) => renderer.sharedMaterial = (Material) value, false );
 
-		// The drawer for materials is, by default, an ExpandableInspectorField. We don't need to draw its collapsible header
+		// The drawer for materials is, by default, an ExpandableInspectorField. We don't want to draw its collapsible header in this example
 		materialField.HeaderVisibility = RuntimeInspector.HeaderVisibility.Hidden;
 	}
 

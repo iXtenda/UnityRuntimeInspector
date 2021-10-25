@@ -424,12 +424,9 @@ namespace RuntimeInspectorNamespace
 			base.Update();
 
 			float time = Time.realtimeSinceStartup;
-			if( !m_isInSearchMode )
-			{
-				if( time > nextHierarchyRefreshTime )
-					Refresh();
-			}
-			else if( time > nextSearchRefreshTime )
+			if( time > nextHierarchyRefreshTime )
+				Refresh();
+			if( m_isInSearchMode && time > nextSearchRefreshTime )
 				RefreshSearchResults();
 
 			if( isListViewDirty )
@@ -506,9 +503,6 @@ namespace RuntimeInspectorNamespace
 
 		public void Refresh()
 		{
-			if( m_isInSearchMode )
-				return;
-
 			nextHierarchyRefreshTime = Time.realtimeSinceStartup + m_refreshInterval;
 
 			bool hasChanged = false;
@@ -953,14 +947,17 @@ namespace RuntimeInspectorNamespace
 
 				// Make sure that the contents of the hierarchy are up-to-date
 				Refresh();
+				RefreshSearchResults();
 
 				// Focus the last element of the selection
 				Transform last = selection.Last();
 				Scene selectionScene = last.gameObject.scene;
+				List<HierarchyDataRoot> sceneData = m_isInSearchMode ? searchSceneData : this.sceneData;
+
 				for( int i = 0; i < sceneData.Count; i++ )
 				{
 					HierarchyDataRoot data = sceneData[i];
-					if( ( data is HierarchyDataRootPseudoScene ) || ( (HierarchyDataRootScene) data ).Scene == selectionScene )
+					if( m_isInSearchMode || ( data is HierarchyDataRootPseudoScene ) || ( (HierarchyDataRootScene) data ).Scene == selectionScene )
 					{
 						HierarchyDataTransform selectionItem = sceneData[i].FindTransform( last );
 						if( selectionItem != null )
@@ -973,7 +970,16 @@ namespace RuntimeInspectorNamespace
 								itemIndex += sceneData[i].Height;
 
 							LayoutRebuilder.ForceRebuildLayoutImmediate( drawArea );
-							scrollView.verticalNormalizedPosition = Mathf.Clamp01( 1f - (float) itemIndex / totalItemCount );
+
+							// Focus ScrollRect on selectionItem
+							// Credit: https://gist.github.com/yasirkula/75ca350fb83ddcc1558d33a8ecf1483f
+							float drawAreaHeight = drawArea.rect.height;
+							float viewportHeight = ( (RectTransform) drawArea.parent ).rect.height;
+							if( drawAreaHeight > viewportHeight )
+							{
+								float focusPoint = ( (float) itemIndex / totalItemCount ) * drawAreaHeight + Skin.LineHeight * 0.5f;
+								scrollView.verticalNormalizedPosition = 1f - Mathf.Clamp01( ( focusPoint - viewportHeight * 0.5f ) / ( drawAreaHeight - viewportHeight ) );
+							}
 
 							return true;
 						}
