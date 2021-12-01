@@ -312,7 +312,7 @@ namespace RuntimeInspectorNamespace
 		private RectTransform drawArea;
 
 		[SerializeField]
-		private RecycledListView listView;
+		protected RecycledListView listView;
 
 		[SerializeField]
 		private Image background;
