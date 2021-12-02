@@ -13,7 +13,7 @@ namespace RuntimeInspectorNamespace
 	public class RuntimeHierarchy : SkinnedWindow, IListViewAdapter, ITooltipManager
 	{
 		[System.Flags]
-		public enum SelectOptions { None = 0, Additive = 1, FocusOnSelection = 2, ForceRevealSelection = 4 };
+		public enum SelectOptions { None = 0, Additive = 1, FocusOnSelection = 2, ForceRevealSelection = 4, DontExpand = 8 };
 		public enum LongPressAction { None = 0, CreateDraggedReferenceItem = 1, ShowMultiSelectionToggles = 2, ShowMultiSelectionTogglesThenCreateDraggedReferenceItem = 3 };
 
 		public delegate void SelectionChangedDelegate( ReadOnlyCollection<Transform> selection );
@@ -1243,7 +1243,11 @@ namespace RuntimeInspectorNamespace
 					HierarchyDataRoot data = sceneData[j];
 					if( m_isInSearchMode || ( data is HierarchyDataRootPseudoScene ) || ( (HierarchyDataRootScene) data ).Scene == selectionScene )
 					{
-						HierarchyDataTransform selectionItem = data.FindTransform( _selection );
+						bool dontExpand = ( selectOptions & SelectOptions.DontExpand ) == SelectOptions.DontExpand;
+						HierarchyDataTransform selectionItem
+							= dontExpand
+							? data.FindTransformInVisibleChildren( _selection )
+							: data.FindTransform( _selection );
 						if( selectionItem != null )
 						{
 							itemToFocus = selectionItem;

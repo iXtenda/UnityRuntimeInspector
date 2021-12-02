@@ -29,6 +29,9 @@ namespace RuntimeInspectorNamespace
 
 		[SerializeField]
 		private Image dragDropTargetVisualization;
+
+		[SerializeField]
+		protected bool expandOnDrop = true;
 #pragma warning restore 0649
 
 		private Canvas canvas;
@@ -275,7 +278,12 @@ namespace RuntimeInspectorNamespace
 
 			// Don't reveal the selection unless it's necessary (i.e. selection is already fully visible)
 			if( shouldFocusObjectInHierarchy )
-				hierarchy.SelectInternal( droppedTransforms, RuntimeHierarchy.SelectOptions.FocusOnSelection | RuntimeHierarchy.SelectOptions.ForceRevealSelection );
+			{
+				if( expandOnDrop )
+					hierarchy.SelectInternal( droppedTransforms, RuntimeHierarchy.SelectOptions.FocusOnSelection | RuntimeHierarchy.SelectOptions.ForceRevealSelection );
+				else
+					hierarchy.SelectInternal( droppedTransforms, RuntimeHierarchy.SelectOptions.FocusOnSelection | RuntimeHierarchy.SelectOptions.DontExpand );
+			}
 			else
 				hierarchy.Refresh();
 		}
