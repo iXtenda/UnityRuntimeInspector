@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -470,6 +471,28 @@ namespace RuntimeInspectorNamespace
 				//	Debug.LogError( "Can't inspect while Inspector is inactive!" );
 				//	return;
 				//}
+
+				if( obj is IEnumerable enumerable )
+				{
+					Type entryType = null;
+					object firstEntry = null;
+
+					foreach( object entry in enumerable )
+					{
+						if( entryType == null )
+						{
+							entryType = entry.GetType();
+							firstEntry = entry;
+							continue;
+						}
+
+						if( entryType != entry.GetType() )
+						{
+							obj = firstEntry;
+							break;
+						}
+					}
+				}
 
 				InspectorField inspectedObjectDrawer = CreateDrawerForType( obj.GetType(), drawArea, 0, false );
 				if( inspectedObjectDrawer != null )

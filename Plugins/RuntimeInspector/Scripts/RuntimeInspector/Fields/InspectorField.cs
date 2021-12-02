@@ -492,7 +492,17 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
+		public InspectorField CreateDrawerForComponent( IEnumerable<Component> component, string variableName = null )
+		{
+			return CreateDrawerForComponent( (object) component, variableName );
+		}
+
 		public InspectorField CreateDrawerForComponent( Component component, string variableName = null )
+		{
+			return CreateDrawerForComponent( (object) component, variableName );
+		}
+
+		private InspectorField CreateDrawerForComponent( object component, string variableName = null )
 		{
 			InspectorField variableDrawer = Inspector.CreateDrawerForType( component.GetType(), drawArea, Depth + 1, false );
 			if( variableDrawer != null )

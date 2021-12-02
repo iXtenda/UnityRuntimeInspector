@@ -1395,30 +1395,23 @@ namespace RuntimeInspectorNamespace
 			selectLock = true;
 			try
 			{
+                List<GameObject> selection = new List<GameObject>( m_currentSelection.Count );
+                for( int i = 0; i < m_currentSelection.Count; i++ )
+                {
+                    if( m_currentSelection[i] )
+                        selection.Add( m_currentSelection[i].gameObject );
+                }
+
 #if UNITY_EDITOR
 				if( syncSelectionWithEditorHierarchy )
 				{
-					List<GameObject> selection = new List<GameObject>( m_currentSelection.Count );
-					for( int i = 0; i < m_currentSelection.Count; i++ )
-					{
-						if( m_currentSelection[i] )
-							selection.Add( m_currentSelection[i].gameObject );
-					}
-
 					UnityEditor.Selection.objects = selection.ToArray();
 				}
 #endif
 
 				if( m_connectedInspector )
 				{
-					for( int i = m_currentSelection.Count - 1; i >= 0; i-- )
-					{
-						if( m_currentSelection[i] )
-						{
-							m_connectedInspector.Inspect( m_currentSelection[i].gameObject );
-							break;
-						}
-					}
+                    m_connectedInspector.Inspect( selection );
 				}
 
 				if( OnSelectionChanged != null )
