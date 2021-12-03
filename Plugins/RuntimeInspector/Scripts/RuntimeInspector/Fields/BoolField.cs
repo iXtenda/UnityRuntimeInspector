@@ -12,6 +12,9 @@ namespace RuntimeInspectorNamespace
 
 		[SerializeField]
 		private Toggle input;
+
+		[SerializeField]
+		private Image multiValuesMark;
 #pragma warning restore 0649
 
 		public override void Initialize()
@@ -22,12 +25,16 @@ namespace RuntimeInspectorNamespace
 
 		public override bool SupportsType( Type type )
 		{
-			return type == typeof( bool );
+			return type == typeof( bool? ) || type == typeof( bool );
 		}
 
 		private void OnValueChanged( bool input )
 		{
-			Value = input;
+			if( Value is bool )
+				Value = input;
+			else
+				Value = true;
+
 			Inspector.RefreshDelayed();
 		}
 
@@ -37,16 +44,31 @@ namespace RuntimeInspectorNamespace
 
 			toggleBackground.color = Skin.InputFieldNormalBackgroundColor;
 			input.graphic.color = Skin.ToggleCheckmarkColor;
+			multiValuesMark.color = Skin.ToggleCheckmarkColor;
 
 			Vector2 rightSideAnchorMin = new Vector2( Skin.LabelWidthPercentage, 0f );
 			variableNameMask.rectTransform.anchorMin = rightSideAnchorMin;
 			( (RectTransform) input.transform ).anchorMin = rightSideAnchorMin;
 		}
 
+		private void SwitchMarks( bool hasMultipleValues )
+		{
+			input.graphic.enabled = !hasMultipleValues;
+			multiValuesMark.enabled = hasMultipleValues;
+		}
+
 		public override void Refresh()
 		{
 			base.Refresh();
-			input.isOn = (bool) Value;
+			if( Value is bool b )
+			{
+				input.isOn = b;
+				SwitchMarks( false );
+			}
+			else
+			{
+				SwitchMarks( true );
+			}
 		}
 	}
 }

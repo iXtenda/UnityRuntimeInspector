@@ -51,7 +51,7 @@ namespace RuntimeInspectorNamespace
 						continue;
 					}
 
-					if( value != getter( go ) )
+					if( value.Equals( getter( go ) ) )
 						return null;
 				}
 
@@ -115,7 +115,7 @@ namespace RuntimeInspectorNamespace
 			if( components.Count == 0 )
 				return;
 
-			CreateDrawer( typeof( bool ), "Is Active", isActiveGetter, isActiveSetter );
+			CreateDrawer( typeof( bool? ), "Is Active", isActiveGetter, isActiveSetter );
 			StringField nameField = CreateDrawer( typeof( string ), "Name", nameGetter, nameSetter ) as StringField;
 			StringField tagField = CreateDrawer( typeof( string ), "Tag", tagGetter, tagSetter ) as StringField;
 			CreateDrawerForVariable( layerProp, "Layer" );
