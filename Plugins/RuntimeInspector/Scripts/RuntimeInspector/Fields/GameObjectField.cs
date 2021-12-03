@@ -29,6 +29,10 @@ namespace RuntimeInspectorNamespace
 			new RuntimeInspectorButtonAttribute( "Remove Component", false, ButtonVisibility.InitializedObjects ),
 			true);
 
+		private HasMultiValuesGetter hasMultiIsActiveGetter;
+		private HasMultiValuesGetter hasMultiNameGetter;
+		private HasMultiValuesGetter hasMultiTagGetter;
+
 		private void SetterWrapper<T>( Action<GameObject, T> setter, T value )
 		{
 			if( Value is IEnumerable<GameObject> objs )
@@ -51,7 +55,7 @@ namespace RuntimeInspectorNamespace
 						continue;
 					}
 
-					if( value.Equals( getter( go ) ) )
+					if( !value.Equals( getter( go ) ) )
 						return null;
 				}
 
@@ -80,6 +84,10 @@ namespace RuntimeInspectorNamespace
 				if( hierarchy )
 					hierarchy.RefreshNameOf( go.transform );
 			}, value);
+
+			hasMultiIsActiveGetter = () => isActiveGetter() == null;
+			hasMultiNameGetter     = () => nameGetter()     == null;
+			hasMultiTagGetter      = () => tagGetter()      == null;
 
 			layerProp = typeof( GameObject ).GetProperty( "layer" );
 		}
@@ -115,9 +123,9 @@ namespace RuntimeInspectorNamespace
 			if( components.Count == 0 )
 				return;
 
-			CreateDrawer( typeof( bool? ), "Is Active", isActiveGetter, isActiveSetter );
-			StringField nameField = CreateDrawer( typeof( string ), "Name", nameGetter, nameSetter ) as StringField;
-			StringField tagField = CreateDrawer( typeof( string ), "Tag", tagGetter, tagSetter ) as StringField;
+			CreateDrawer( typeof( bool ), "Is Active", isActiveGetter, isActiveSetter, hasMultiIsActiveGetter );
+			StringField nameField = CreateDrawer( typeof( string ), "Name", nameGetter, nameSetter, hasMultiNameGetter ) as StringField;
+			StringField tagField = CreateDrawer( typeof( string ), "Tag", tagGetter, tagSetter, hasMultiTagGetter ) as StringField;
 			CreateDrawerForVariable( layerProp, "Layer" );
 
 			foreach( var pair in components )

@@ -10,6 +10,7 @@ namespace RuntimeInspectorNamespace
 	{
 		public delegate object Getter();
 		public delegate void Setter( object value );
+		public delegate bool HasMultiValuesGetter();
 
 #pragma warning disable 0649
 		[SerializeField]
@@ -105,10 +106,13 @@ namespace RuntimeInspectorNamespace
 
 		public virtual bool ShouldRefresh { get { return m_isVisible; } }
 
+		public bool HasMultipleValues { get { return hasMultiValuesGetter?.Invoke() ?? false; } }
+
 		protected virtual float HeightMultiplier { get { return 1f; } }
 
 		private Getter getter;
 		private Setter setter;
+		private HasMultiValuesGetter hasMultiValuesGetter;
 
 		public virtual void Initialize()
 		{
@@ -125,55 +129,70 @@ namespace RuntimeInspectorNamespace
 
 		public void BindTo( InspectorField parent, MemberInfo variable, string variableName = null )
 		{
-			if( variable is FieldInfo )
+			Type variableType;
+			Getter getter;
+			Setter setter;
+
+			bool isValueType = parent.BoundVariableType.
+#if !UNITY_EDITOR && NETFX_CORE
+			GetTypeInfo().
+#endif
+			IsValueType;
+
+			if( variable is FieldInfo field )
 			{
-				FieldInfo field = (FieldInfo) variable;
+				variableType = field.FieldType;
+				getter = () => field.GetValue( parent.Value );
+
 				if( variableName == null )
 					variableName = field.Name;
 
-#if UNITY_EDITOR || !NETFX_CORE
-				if( !parent.BoundVariableType.IsValueType )
-#else
-				if( !parent.BoundVariableType.GetTypeInfo().IsValueType )
-#endif
-					BindTo( field.FieldType, variableName, () => field.GetValue( parent.Value ), ( value ) => field.SetValue( parent.Value, value ), variable );
+				if( isValueType )
+					setter = value => field.SetValue( parent.Value, value );
 				else
-					BindTo( field.FieldType, variableName, () => field.GetValue( parent.Value ), ( value ) =>
+					setter = value =>
 					{
 						field.SetValue( parent.Value, value );
 						parent.Value = parent.Value;
-					}, variable );
+					};
 			}
-			else if( variable is PropertyInfo )
+			else if( variable is PropertyInfo property )
 			{
-				PropertyInfo property = (PropertyInfo) variable;
+				variableType = property.PropertyType;
+				getter = () => property.GetValue( parent.Value, null );
+
 				if( variableName == null )
 					variableName = property.Name;
 
-#if UNITY_EDITOR || !NETFX_CORE
-				if( !parent.BoundVariableType.IsValueType )
-#else
-				if( !parent.BoundVariableType.GetTypeInfo().IsValueType )
-#endif
-					BindTo( property.PropertyType, variableName, () => property.GetValue( parent.Value, null ), ( value ) => property.SetValue( parent.Value, value, null ), variable );
+				if( isValueType )
+					setter = value => property.SetValue( parent.Value, value, null );
 				else
-					BindTo( property.PropertyType, variableName, () => property.GetValue( parent.Value, null ), ( value ) =>
+					setter = value =>
 					{
 						property.SetValue( parent.Value, value, null );
 						parent.Value = parent.Value;
-					}, variable );
+					};
 			}
 			else
 				throw new ArgumentException( "Variable can either be a field or a property" );
+
+			BindTo( variableType, variableName, getter, setter, parent.hasMultiValuesGetter, variable );
 		}
 
-		public void BindTo( Type variableType, string variableName, Getter getter, Setter setter, MemberInfo variable = null )
+		public void BindTo(
+			Type variableType,
+			string variableName,
+			Getter getter,
+			Setter setter,
+			HasMultiValuesGetter hasMultiValuesGetter = null,
+			MemberInfo variable = null)
 		{
 			m_boundVariableType = variableType;
 			Name = variableName;
 
 			this.getter = getter;
 			this.setter = setter;
+			this.hasMultiValuesGetter = hasMultiValuesGetter;
 
 			OnBound( variable );
 		}
@@ -535,12 +554,18 @@ namespace RuntimeInspectorNamespace
 			return variableDrawer;
 		}
 
-		public InspectorField CreateDrawer( Type variableType, string variableName, Getter getter, Setter setter, bool drawObjectsAsFields = true )
+		public InspectorField CreateDrawer(
+			Type variableType,
+			string variableName,
+			Getter getter,
+			Setter setter,
+			HasMultiValuesGetter hasMultipleValuesGetter = null,
+			bool drawObjectsAsFields = true)
 		{
 			InspectorField variableDrawer = Inspector.CreateDrawerForType( variableType, drawArea, Depth + 1, drawObjectsAsFields );
 			if( variableDrawer != null )
 			{
-				variableDrawer.BindTo( variableType, variableName == null ? null : string.Empty, getter, setter );
+				variableDrawer.BindTo( variableType, variableName == null ? null : string.Empty, getter, setter, hasMultipleValuesGetter );
 				if( variableName != null )
 					variableDrawer.NameRaw = variableName;
 

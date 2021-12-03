@@ -25,15 +25,15 @@ namespace RuntimeInspectorNamespace
 
 		public override bool SupportsType( Type type )
 		{
-			return type == typeof( bool? ) || type == typeof( bool );
+			return type == typeof( bool );
 		}
 
 		private void OnValueChanged( bool input )
 		{
-			if( Value is bool )
-				Value = input;
-			else
+			if( HasMultipleValues )
 				Value = true;
+			else
+				Value = input;
 
 			Inspector.RefreshDelayed();
 		}
@@ -60,14 +60,14 @@ namespace RuntimeInspectorNamespace
 		public override void Refresh()
 		{
 			base.Refresh();
-			if( Value is bool b )
+			if( HasMultipleValues )
 			{
-				input.isOn = b;
-				SwitchMarks( false );
+				SwitchMarks( true );
 			}
 			else
 			{
-				SwitchMarks( true );
+				input.isOn = (bool) Value;
+				SwitchMarks( false );
 			}
 		}
 	}
