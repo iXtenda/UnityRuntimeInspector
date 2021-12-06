@@ -14,9 +14,9 @@ namespace RuntimeInspectorNamespace
 
 		public static void SetSkinInputFieldText( this Text text, UISkin skin )
 		{
-			text.color = skin.InputFieldTextColor;
+			//text.color = skin.InputFieldTextColor;
 			text.font = skin.Font;
-			text.fontSize = skin.FontSize;
+			text.fontSize = skin.InputFontSize;
 		}
 
 		public static void SetSkinButtonText( this Text text, UISkin skin )

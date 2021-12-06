@@ -327,7 +327,7 @@ namespace RuntimeInspectorNamespace
 		private InputField searchInputField;
 
 		[SerializeField]
-		private Image searchIcon;
+		private Graphic searchIcon;
 
 		[SerializeField]
 		private Image searchInputFieldBackground;
@@ -766,8 +766,9 @@ namespace RuntimeInspectorNamespace
 			horizontalScrollbar.color = Skin.ScrollbarColor;
 
 			searchInputField.textComponent.SetSkinInputFieldText( Skin );
-			searchInputFieldBackground.color = Skin.InputFieldNormalBackgroundColor.Tint( 0.08f );
-			searchIcon.color = Skin.ButtonTextColor;
+			//searchInputFieldBackground.color = Skin.InputFieldNormalBackgroundColor.Tint( 0.08f );
+			searchInputFieldBackground.color = Skin.InputFieldNormalBackgroundColor;
+			//searchIcon.color = Skin.ButtonTextColor;
 			searchBarLayoutElement.SetHeight( Skin.LineHeight );
 
 			deselectAllLayoutElement.SetHeight( Skin.LineHeight );

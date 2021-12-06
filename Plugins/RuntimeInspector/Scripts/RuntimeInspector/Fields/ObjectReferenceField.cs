@@ -103,8 +103,8 @@ namespace RuntimeInspectorNamespace
 
 			referenceNameText.SetSkinInputFieldText( Skin );
 
-			referenceNameText.resizeTextMinSize = Mathf.Max( 2, Skin.FontSize - 2 );
-			referenceNameText.resizeTextMaxSize = Skin.FontSize;
+			referenceNameText.resizeTextMinSize = Mathf.Max( 2, Skin.InputFontSize - 2 );
+			referenceNameText.resizeTextMaxSize = Skin.InputFontSize;
 
 			if( inspectReferenceImage )
 			{

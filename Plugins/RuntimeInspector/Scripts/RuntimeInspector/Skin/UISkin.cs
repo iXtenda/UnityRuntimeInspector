@@ -39,7 +39,7 @@ namespace RuntimeInspectorNamespace
 		}
 
 		[SerializeField]
-		private int m_fontSize = 12;
+		private int m_fontSize = 11;
 		public int FontSize
 		{
 			get { return m_fontSize; }
@@ -48,6 +48,21 @@ namespace RuntimeInspectorNamespace
 				if( m_fontSize != value )
 				{
 					m_fontSize = value;
+					m_version++;
+				}
+			}
+		}
+
+		[SerializeField]
+		private int m_inputFontSize = 12;
+		public int InputFontSize
+		{
+			get { return m_inputFontSize; }
+			set
+			{
+				if( m_inputFontSize != value )
+				{
+					m_inputFontSize = value;
 					m_version++;
 				}
 			}
