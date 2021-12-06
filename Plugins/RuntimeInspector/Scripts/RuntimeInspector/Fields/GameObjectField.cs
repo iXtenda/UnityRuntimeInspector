@@ -29,72 +29,33 @@ namespace RuntimeInspectorNamespace
 			new RuntimeInspectorButtonAttribute( "Remove Component", false, ButtonVisibility.InitializedObjects ),
 			true);
 
-		private HasMultiValuesGetter hasMultiIsActiveGetter;
-		private HasMultiValuesGetter hasMultiNameGetter;
-		private HasMultiValuesGetter hasMultiTagGetter;
-
-		private void SetterWrapper<T>( Action<GameObject, T> setter, T value )
-		{
-			if( Value is IEnumerable<GameObject> objs )
-				foreach( GameObject go in objs )
-					setter( go, value );
-			else
-				setter( (GameObject) Value, value );
-		}
-
-		private T GetterWrapper<T>( Func<GameObject, T> getter ) where T : class
-		{
-			if( Value is IEnumerable<GameObject> objs )
-			{
-				T value = null;
-				foreach( var go in objs )
-				{
-					if( value == null )
-					{
-						value = getter( go );
-						continue;
-					}
-
-					if( !value.Equals( getter( go ) ) )
-						return null;
-				}
-
-				return value;
-			}
-
-			return getter( (GameObject) Value );
-		}
-
 		public override void Initialize()
 		{
 			base.Initialize();
 
-			isActiveGetter = () => GetterWrapper( go => (object) go.activeSelf );
-			tagGetter      = () => GetterWrapper( go => go.tag );
-			nameGetter     = () => GetterWrapper( go => go.name );
+			isActiveGetter = () => Reduce( o => ( (GameObject) o ).activeSelf );
+			tagGetter      = () => Reduce( o => ( (GameObject) o ).tag );
+			nameGetter     = () => Reduce( o => ( (GameObject) o ).name );
 
-			isActiveSetter = value => SetterWrapper( ( go, x ) => go.SetActive( (bool) x ), value );
-			tagSetter      = value => SetterWrapper( ( go, x ) => go.tag = (string) x, value );
-			nameSetter     = value => SetterWrapper( ( go, x ) =>
+			isActiveSetter = value => SetEach( ( o, x ) => ( (GameObject) o ).SetActive( x ), (bool) value );
+			tagSetter      = value => SetEach( ( o, x ) => ( (GameObject) o ).tag = x, (string) value );
+			nameSetter     = value => SetEach( ( o, x ) =>
 			{
-				go.name = (string) x;
-				NameRaw = go.GetNameWithType();
+				var go = (GameObject) o;
+				go.name = x;
+				NameRaw = o.GetNameWithType();
 
 				RuntimeHierarchy hierarchy = Inspector.ConnectedHierarchy;
 				if( hierarchy )
 					hierarchy.RefreshNameOf( go.transform );
-			}, value);
-
-			hasMultiIsActiveGetter = () => isActiveGetter() == null;
-			hasMultiNameGetter     = () => nameGetter()     == null;
-			hasMultiTagGetter      = () => tagGetter()      == null;
+			}, (string) value);
 
 			layerProp = typeof( GameObject ).GetProperty( "layer" );
 		}
 
 		public override bool SupportsType( Type type )
 		{
-			return typeof( GameObject ) == type || typeof( IEnumerable<GameObject> ).IsAssignableFrom( type );
+			return typeof( GameObject ) == type;
 		}
 
 		protected override void OnUnbound()
@@ -120,12 +81,9 @@ namespace RuntimeInspectorNamespace
 
 		protected override void GenerateElements()
 		{
-			if( components.Count == 0 )
-				return;
-
-			CreateDrawer( typeof( bool ), "Is Active", isActiveGetter, isActiveSetter, hasMultiIsActiveGetter );
-			StringField nameField = CreateDrawer( typeof( string ), "Name", nameGetter, nameSetter, hasMultiNameGetter ) as StringField;
-			StringField tagField = CreateDrawer( typeof( string ), "Tag", tagGetter, tagSetter, hasMultiTagGetter ) as StringField;
+			CreateDrawer( typeof( bool ), "Is Active", isActiveGetter, isActiveSetter );
+			StringField nameField = CreateDrawer( typeof( string ), "Name", nameGetter, nameSetter ) as StringField;
+			StringField tagField = CreateDrawer( typeof( string ), "Tag", tagGetter, tagSetter ) as StringField;
 			CreateDrawerForVariable( layerProp, "Layer" );
 
 			foreach( var pair in components )

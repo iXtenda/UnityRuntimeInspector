@@ -60,14 +60,14 @@ namespace RuntimeInspectorNamespace
 		public override void Refresh()
 		{
 			base.Refresh();
-			if( HasMultipleValues )
+			if( Value is bool b )
 			{
-				SwitchMarks( true );
+				input.isOn = b;
+				SwitchMarks( false );
 			}
 			else
 			{
-				input.isOn = (bool) Value;
-				SwitchMarks( false );
+				SwitchMarks( true );
 			}
 		}
 	}

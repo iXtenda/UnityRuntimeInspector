@@ -284,15 +284,13 @@ namespace RuntimeInspectorNamespace
 				if( m_connectedInspector != value )
 				{
 					m_connectedInspector = value;
+					if( m_currentSelection == null )
+						return;
 
-					for( int i = m_currentSelection.Count - 1; i >= 0; i-- )
-					{
-						if( m_currentSelection[i] )
-						{
-							m_connectedInspector.Inspect( m_currentSelection[i].gameObject );
-							break;
-						}
-					}
+					var toInspect = new HashSet<object>();
+					foreach( var s in m_currentSelection )
+						toInspect.Add( s.gameObject );
+					m_connectedInspector.Inspect( toInspect, multiple: true );
 				}
 			}
 		}
@@ -1411,7 +1409,7 @@ namespace RuntimeInspectorNamespace
 
 				if( m_connectedInspector )
 				{
-                    m_connectedInspector.Inspect( selection );
+                    m_connectedInspector.Inspect( selection, multiple: true );
 				}
 
 				if( OnSelectionChanged != null )

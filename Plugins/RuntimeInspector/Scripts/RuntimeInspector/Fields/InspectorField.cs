@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -6,7 +7,22 @@ using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public abstract class InspectorField : MonoBehaviour, ITooltipContent
+    public class MultiValue : IEnumerable
+    {
+		IEnumerable value;
+
+        public MultiValue(IEnumerable value)
+        {
+			this.value = value;
+        }
+
+        public IEnumerator GetEnumerator()
+        {
+			return value.GetEnumerator();
+        }
+    }
+
+    public abstract class InspectorField : MonoBehaviour, ITooltipContent
 	{
 		public delegate object Getter();
 		public delegate void Setter( object value );
@@ -106,13 +122,20 @@ namespace RuntimeInspectorNamespace
 
 		public virtual bool ShouldRefresh { get { return m_isVisible; } }
 
-		public bool HasMultipleValues { get { return hasMultiValuesGetter?.Invoke() ?? false; } }
+		public bool HasMultipleValues
+		{
+			get
+			{
+				return Value is MultiValue;
+			}
+		}
+
+		protected virtual bool SupportsMultipleValues { get { return false; } }
 
 		protected virtual float HeightMultiplier { get { return 1f; } }
 
 		private Getter getter;
 		private Setter setter;
-		private HasMultiValuesGetter hasMultiValuesGetter;
 
 		public virtual void Initialize()
 		{
@@ -122,12 +145,20 @@ namespace RuntimeInspectorNamespace
 
 		public abstract bool SupportsType( Type type );
 
+		public bool SupportsTypeOrEnumerable<T>( Type type )
+		{
+			return typeof( T ) == type || typeof( IEnumerable<T> ).IsAssignableFrom( type );
+		}
+
 		public virtual bool CanBindTo( Type type, MemberInfo variable )
 		{
 			return true;
 		}
 
-		public void BindTo( InspectorField parent, MemberInfo variable, string variableName = null )
+		public void BindTo(
+			InspectorField parent,
+			MemberInfo variable,
+			string variableName = null)
 		{
 			Type variableType;
 			Getter getter;
@@ -176,7 +207,54 @@ namespace RuntimeInspectorNamespace
 			else
 				throw new ArgumentException( "Variable can either be a field or a property" );
 
-			BindTo( variableType, variableName, getter, setter, parent.hasMultiValuesGetter, variable );
+			BindTo( variableType, variableName, getter, setter, variable );
+		}
+
+// 		public void BindTo(
+// 			MemberInfo variable,
+// 			string variableName = null)
+// 		{
+// 			Type variableType;
+// 			Func<object, object> getter;
+// 			Action<object, object> setter;
+
+// 			if( variable is FieldInfo field )
+// 			{
+// 				variableType = field.FieldType;
+// 				getter = owner => field.GetValue( owner );
+// 				setter = ( owner, value ) => field.SetValue( owner, value );
+
+// 				if( variableName == null )
+// 					variableName = field.Name;
+// 			}
+// 			else if( variable is PropertyInfo property )
+// 			{
+// 				variableType = property.PropertyType;
+// 				getter = owner => property.GetValue( owner );
+// 				setter = ( owner, value ) => property.SetValue( owner, value );
+
+// 				if( variableName == null )
+// 					variableName = property.Name;
+// 			}
+// 			else
+// 				throw new ArgumentException( "Variable can either be a field or a property" );
+
+// 			BindTo( variableType, variableName, getter, setter, variable );
+// 		}
+
+		public void BindTo(
+			Type variableType,
+			string variableName,
+			Getter getter,
+			Action<object, object> setter,
+			MemberInfo variable = null)
+		{
+			BindTo(
+				variableType,
+				variableName,
+				getter,
+				value => SetEach<object>( setter, value ),
+				variable);
 		}
 
 		public void BindTo(
@@ -184,7 +262,6 @@ namespace RuntimeInspectorNamespace
 			string variableName,
 			Getter getter,
 			Setter setter,
-			HasMultiValuesGetter hasMultiValuesGetter = null,
 			MemberInfo variable = null)
 		{
 			m_boundVariableType = variableType;
@@ -192,7 +269,6 @@ namespace RuntimeInspectorNamespace
 
 			this.getter = getter;
 			this.setter = setter;
-			this.hasMultiValuesGetter = hasMultiValuesGetter;
 
 			OnBound( variable );
 		}
@@ -283,6 +359,40 @@ namespace RuntimeInspectorNamespace
 				else
 					m_value = null;
 			}
+		}
+
+		protected void SetEach<T>( Action<object, T> setter, T value )
+		{
+			if( !HasMultipleValues )
+			{
+				setter( Value, value );
+				return;
+			}
+
+			foreach( object i in (IEnumerable) Value )
+				setter( i, value );
+		}
+
+		protected object Reduce( Func<object, object> getter )
+		{
+			if( !HasMultipleValues )
+				return getter( Value );
+
+			var values = new HashSet<object>();
+			foreach( var i in (IEnumerable) Value )
+				values.Add( getter( i ) );
+
+			if( values.Count == 0 )
+				return null;
+			if (values.Count == 1)
+			{
+				using (var iter = values.GetEnumerator())
+				{
+					iter.MoveNext();
+					return iter.Current;
+				}
+			}
+			return new MultiValue( values );
 		}
 	}
 
@@ -559,13 +669,12 @@ namespace RuntimeInspectorNamespace
 			string variableName,
 			Getter getter,
 			Setter setter,
-			HasMultiValuesGetter hasMultipleValuesGetter = null,
 			bool drawObjectsAsFields = true)
 		{
 			InspectorField variableDrawer = Inspector.CreateDrawerForType( variableType, drawArea, Depth + 1, drawObjectsAsFields );
 			if( variableDrawer != null )
 			{
-				variableDrawer.BindTo( variableType, variableName == null ? null : string.Empty, getter, setter, hasMultipleValuesGetter );
+				variableDrawer.BindTo( variableType, variableName == null ? null : string.Empty, getter, setter );
 				if( variableName != null )
 					variableDrawer.NameRaw = variableName;
 
