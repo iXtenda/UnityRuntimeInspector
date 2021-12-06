@@ -25,7 +25,7 @@ namespace RuntimeInspectorNamespace
 		private PointerEventListener expandToggle;
 
 		[SerializeField]
-		private Image expandArrow;
+		private Graphic expandArrow;
 
 		[SerializeField]
 		private Toggle multiSelectionToggle;
