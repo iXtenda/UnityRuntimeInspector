@@ -1,6 +1,7 @@
 ﻿#define EXCLUDE_BACKING_FIELDS_FROM_VARIABLES
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
@@ -988,6 +989,47 @@ namespace RuntimeInspectorNamespace
 			}
 
 			return null;
+		}
+
+		public static T First<T>( this IEnumerable<T> enumerable )
+		{
+			using (var iter = enumerable.GetEnumerator())
+			{
+				iter.MoveNext();
+				return iter.Current;
+			}
+		}
+
+		public static object GetUnique<TTarget, TValue>(this InspectorField parent, Func<TTarget, TValue> getter )
+		{
+			if( !parent.HasMultipleValues )
+				return getter( (TTarget) parent.Value );
+
+			var values = new HashSet<TValue>();
+			foreach( var i in (IEnumerable) parent.Value )
+				values.Add( getter( (TTarget) i ) );
+
+			switch( values.Count )
+			{
+				case 0:
+					return null;
+				case 1:
+					return values.First();
+				default:
+					return new MultiValue( values );
+			}
+		}
+
+		public static void SetEach<TTarget, TValue>( this InspectorField parent, Action<TTarget, TValue> setter, TValue value )
+		{
+			if( parent.HasMultipleValues )
+			{
+				foreach( var i in (IEnumerable) parent.Value )
+					setter( (TTarget) i, value );
+				return;
+			}
+
+			setter( (TTarget) parent.Value, value );
 		}
 	}
 }

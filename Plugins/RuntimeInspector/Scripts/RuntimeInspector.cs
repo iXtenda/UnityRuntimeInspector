@@ -424,13 +424,29 @@ namespace RuntimeInspectorNamespace
 				currentDrawer.Skin = Skin;
 		}
 
+		public void Inspect( IEnumerable obj, bool multiple )
+		{
+			if( !m_isLocked )
+				InspectImpl( obj, multiple );
+		}
+
 		public void Inspect( object obj )
 		{
 			if( !m_isLocked )
-				InspectInternal( obj );
+				InspectImpl( obj, false );
+		}
+
+		internal void InspectInternal( IEnumerable obj, bool multiple )
+		{
+			InspectImpl( obj, multiple );
 		}
 
 		internal void InspectInternal( object obj )
+		{
+			InspectImpl( obj, false );
+		}
+
+		private void InspectImpl( object obj, bool multiple )
 		{
 			if( inspectLock )
 				return;
@@ -449,15 +465,18 @@ namespace RuntimeInspectorNamespace
 			inspectLock = true;
 			try
 			{
-				m_inspectedObject = obj;
-
 				if( obj.IsNull() )
+				{
+					m_inspectedObject = null;
 					return;
+				}
+
+				Type drawerType = obj.GetType();
 
 #if UNITY_EDITOR || !NETFX_CORE
-				if( obj.GetType().IsValueType )
+				if( drawerType.IsValueType )
 #else
-				if( obj.GetType().GetTypeInfo().IsValueType )
+				if( type.GetTypeInfo().IsValueType )
 #endif
 				{
 					m_inspectedObject = null;
@@ -472,32 +491,43 @@ namespace RuntimeInspectorNamespace
 				//	return;
 				//}
 
-				if( obj is IEnumerable enumerable )
+				if( multiple )
 				{
-					Type entryType = null;
-					object firstEntry = null;
+					object first = null;
+					int count = 0;
 
-					foreach( object entry in enumerable )
+					foreach( object entry in (IEnumerable) obj )
 					{
-						if( entryType == null )
+						count++;
+
+						if( count == 1 )
 						{
-							entryType = entry.GetType();
-							firstEntry = entry;
+							drawerType = entry.GetType();
+							first = entry;
 							continue;
 						}
 
-						if( entryType != entry.GetType() )
+						if( drawerType != entry.GetType() )
 						{
-							obj = firstEntry;
+							obj = first;
+							multiple = false;
 							break;
 						}
 					}
+
+					if( count == 1 )
+                    {
+						obj = first;
+						multiple = false;
+                    }
 				}
 
-				InspectorField inspectedObjectDrawer = CreateDrawerForType( obj.GetType(), drawArea, 0, false );
+				m_inspectedObject = multiple ? new MultiValue( (IEnumerable) obj ) : obj;
+
+				InspectorField inspectedObjectDrawer = CreateDrawerForType( drawerType, drawArea, 0, false );
 				if( inspectedObjectDrawer != null )
 				{
-					inspectedObjectDrawer.BindTo( obj.GetType(), string.Empty, () => m_inspectedObject, ( value ) => m_inspectedObject = value );
+					inspectedObjectDrawer.BindTo( drawerType, string.Empty, () => m_inspectedObject, value => m_inspectedObject = value );
 					inspectedObjectDrawer.NameRaw = obj.GetNameWithType();
 					inspectedObjectDrawer.Refresh();
 

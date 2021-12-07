@@ -47,7 +47,7 @@ namespace RuntimeInspectorNamespace
 				input.BackingField.contentType = InputField.ContentType.IntegerNumber;
 
 			numberHandler = NumberHandlers.Get( BoundVariableType );
-			input.Text = numberHandler.ToString( Value );
+			UpdateInput();
 		}
 
 		protected virtual bool OnValueChanged( BoundInputField source, string input )
@@ -80,11 +80,21 @@ namespace RuntimeInspectorNamespace
 
 		public override void Refresh()
 		{
-			object prevVal = Value;
 			base.Refresh();
+			UpdateInput();
+		}
 
-			if( !numberHandler.ValuesAreEqual( Value, prevVal ) )
+		private void UpdateInput()
+		{
+			if( HasMultipleValues )
+			{
+				input.HasMultipleValues = true;
+			}
+			else
+			{
 				input.Text = numberHandler.ToString( Value );
+				input.HasMultipleValues = false;
+			}
 		}
 	}
 }

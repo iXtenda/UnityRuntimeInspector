@@ -26,7 +26,6 @@ namespace RuntimeInspectorNamespace
 	{
 		public delegate object Getter();
 		public delegate void Setter( object value );
-		public delegate bool HasMultiValuesGetter();
 
 #pragma warning disable 0649
 		[SerializeField]
@@ -83,8 +82,9 @@ namespace RuntimeInspectorNamespace
 			get { return m_value; }
 			protected set
 			{
-				try { setter( value ); m_value = value; }
-				catch { }
+				// try { setter( value ); m_value = value; }
+				// catch { }
+				setter( value ); m_value = value;
 			}
 		}
 
@@ -121,14 +121,7 @@ namespace RuntimeInspectorNamespace
 		string ITooltipContent.TooltipText { get { return NameRaw; } }
 
 		public virtual bool ShouldRefresh { get { return m_isVisible; } }
-
-		public bool HasMultipleValues
-		{
-			get
-			{
-				return Value is MultiValue;
-			}
-		}
+		public bool HasMultipleValues { get { return Value is MultiValue; } }
 
 		protected virtual bool SupportsMultipleValues { get { return false; } }
 
@@ -145,11 +138,6 @@ namespace RuntimeInspectorNamespace
 
 		public abstract bool SupportsType( Type type );
 
-		public bool SupportsTypeOrEnumerable<T>( Type type )
-		{
-			return typeof( T ) == type || typeof( IEnumerable<T> ).IsAssignableFrom( type );
-		}
-
 		public virtual bool CanBindTo( Type type, MemberInfo variable )
 		{
 			return true;
@@ -161,99 +149,58 @@ namespace RuntimeInspectorNamespace
 			string variableName = null)
 		{
 			Type variableType;
-			Getter getter;
-			Setter setter;
-
-			bool isValueType = parent.BoundVariableType.
-#if !UNITY_EDITOR && NETFX_CORE
-			GetTypeInfo().
-#endif
-			IsValueType;
+			Func<object, object> getter;
+			Action<object, object> setter;
 
 			if( variable is FieldInfo field )
 			{
 				variableType = field.FieldType;
-				getter = () => field.GetValue( parent.Value );
+				variableName ??= field.Name;
+				getter = field.GetValue;
+				setter = field.SetValue;
 
-				if( variableName == null )
-					variableName = field.Name;
-
-				if( isValueType )
-					setter = value => field.SetValue( parent.Value, value );
-				else
-					setter = value =>
-					{
-						field.SetValue( parent.Value, value );
-						parent.Value = parent.Value;
-					};
 			}
 			else if( variable is PropertyInfo property )
 			{
 				variableType = property.PropertyType;
-				getter = () => property.GetValue( parent.Value, null );
-
-				if( variableName == null )
-					variableName = property.Name;
-
-				if( isValueType )
-					setter = value => property.SetValue( parent.Value, value, null );
-				else
-					setter = value =>
-					{
-						property.SetValue( parent.Value, value, null );
-						parent.Value = parent.Value;
-					};
+				variableName ??= property.Name;
+				getter = property.GetValue;
+				setter = property.SetValue;
 			}
 			else
 				throw new ArgumentException( "Variable can either be a field or a property" );
 
-			BindTo( variableType, variableName, getter, setter, variable );
+			BindTo( parent, variableType, variableName, getter, setter, variable );
 		}
 
-// 		public void BindTo(
-// 			MemberInfo variable,
-// 			string variableName = null)
-// 		{
-// 			Type variableType;
-// 			Func<object, object> getter;
-// 			Action<object, object> setter;
-
-// 			if( variable is FieldInfo field )
-// 			{
-// 				variableType = field.FieldType;
-// 				getter = owner => field.GetValue( owner );
-// 				setter = ( owner, value ) => field.SetValue( owner, value );
-
-// 				if( variableName == null )
-// 					variableName = field.Name;
-// 			}
-// 			else if( variable is PropertyInfo property )
-// 			{
-// 				variableType = property.PropertyType;
-// 				getter = owner => property.GetValue( owner );
-// 				setter = ( owner, value ) => property.SetValue( owner, value );
-
-// 				if( variableName == null )
-// 					variableName = property.Name;
-// 			}
-// 			else
-// 				throw new ArgumentException( "Variable can either be a field or a property" );
-
-// 			BindTo( variableType, variableName, getter, setter, variable );
-// 		}
+		public void BindTo<T>(
+			InspectorField parent,
+			string variableName,
+			Func<object, T> getter,
+			Action<object, T> setter,
+			MemberInfo variable = null)
+		{
+			BindTo(
+				typeof( T ),
+				variableName,
+				() => parent.GetUnique( getter ),
+				value => parent.SetEach( setter, (T) value ),
+				variable);
+		}
 
 		public void BindTo(
+			InspectorField parent,
 			Type variableType,
 			string variableName,
-			Getter getter,
+			Func<object, object> getter,
 			Action<object, object> setter,
 			MemberInfo variable = null)
 		{
 			BindTo(
 				variableType,
 				variableName,
-				getter,
-				value => SetEach<object>( setter, value ),
+				() => parent.GetUnique( getter ),
+				value => parent.SetEach( setter, value ),
 				variable);
 		}
 
@@ -359,40 +306,6 @@ namespace RuntimeInspectorNamespace
 				else
 					m_value = null;
 			}
-		}
-
-		protected void SetEach<T>( Action<object, T> setter, T value )
-		{
-			if( !HasMultipleValues )
-			{
-				setter( Value, value );
-				return;
-			}
-
-			foreach( object i in (IEnumerable) Value )
-				setter( i, value );
-		}
-
-		protected object Reduce( Func<object, object> getter )
-		{
-			if( !HasMultipleValues )
-				return getter( Value );
-
-			var values = new HashSet<object>();
-			foreach( var i in (IEnumerable) Value )
-				values.Add( getter( i ) );
-
-			if( values.Count == 0 )
-				return null;
-			if (values.Count == 1)
-			{
-				using (var iter = values.GetEnumerator())
-				{
-					iter.MoveNext();
-					return iter.Current;
-				}
-			}
-			return new MultiValue( values );
 		}
 	}
 
@@ -621,25 +534,44 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		public InspectorField CreateDrawerForComponent( IEnumerable<Component> component, string variableName = null )
+		public InspectorField CreateDrawerForComponent( IEnumerable<Component> components, string variableName = null )
 		{
-			return CreateDrawerForComponent( (object) component, variableName );
+			Component first = null;
+			foreach( Component c in components )
+			{
+				if( first == null )
+					first = c;
+				else
+					// There is more than one entry in 'components'
+					return CreateDrawerForComponent( first.GetType(), new MultiValue( components ), variableName );
+			}
+
+			// There is only one entry in 'components'. Pass it directly.
+			return CreateDrawerForComponent( first.GetType(), first, variableName );
 		}
 
 		public InspectorField CreateDrawerForComponent( Component component, string variableName = null )
 		{
-			return CreateDrawerForComponent( (object) component, variableName );
+			return CreateDrawerForComponent( component.GetType(), component, variableName );
 		}
 
-		private InspectorField CreateDrawerForComponent( object component, string variableName = null )
+		private InspectorField CreateDrawerForComponent( Type componentType, object component, string variableName )
 		{
-			InspectorField variableDrawer = Inspector.CreateDrawerForType( component.GetType(), drawArea, Depth + 1, false );
+			InspectorField variableDrawer = Inspector.CreateDrawerForType( componentType, drawArea, Depth + 1, false );
 			if( variableDrawer != null )
 			{
 				if( variableName == null )
-					variableName = component.GetType().Name + " component";
+					variableName = componentType.Name + " component";
 
-				variableDrawer.BindTo( component.GetType(), string.Empty, () => component, ( value ) => { } );
+				variableDrawer.BindTo(
+					componentType,
+					string.Empty,
+					() => component,
+					value =>
+					{
+							Debug.Log(value);
+					}
+					);
 				variableDrawer.NameRaw = variableName;
 
 				elements.Add( variableDrawer );
@@ -662,6 +594,20 @@ namespace RuntimeInspectorNamespace
 			}
 
 			return variableDrawer;
+		}
+
+		public InspectorField CreateDrawer<U, T>(
+			string variableName,
+			Func<U, T> getter,
+			Action<U, T> setter,
+			bool drawObjectsAsFields = true)
+		{
+			return CreateDrawer(
+				typeof( T ),
+				variableName,
+				() => this.GetUnique( getter ),
+				value => this.SetEach( setter, (T) value ),
+				drawObjectsAsFields);
 		}
 
 		public InspectorField CreateDrawer(

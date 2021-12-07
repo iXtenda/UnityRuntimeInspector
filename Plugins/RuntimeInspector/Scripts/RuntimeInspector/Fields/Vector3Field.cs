@@ -162,6 +162,20 @@ namespace RuntimeInspectorNamespace
 
 		public override void Refresh()
 		{
+			if( HasMultipleValues )
+			{
+				inputX.HasMultipleValues = true;
+				inputY.HasMultipleValues = true;
+				inputZ.HasMultipleValues = true;
+				return;
+			}
+			else
+			{
+				inputX.HasMultipleValues = false;
+				inputY.HasMultipleValues = false;
+				inputZ.HasMultipleValues = false;
+			}
+
 #if UNITY_2017_2_OR_NEWER
 			if( isVector3Int )
 			{
