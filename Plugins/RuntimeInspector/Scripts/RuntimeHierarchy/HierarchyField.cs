@@ -186,6 +186,7 @@ namespace RuntimeInspectorNamespace
 			//Modified indent (so the right anchored icons move correctly, with panel bounds)
 			contentTransform.anchoredPosition = new Vector2( ( MultiSelectionToggleVisible ? Skin.LineHeight * 0.8f : 0f ), 0f );
 			contentLayoutGroup.padding.left = Skin.IndentAmount * ( data.Depth - 1 < 0 ? 0 : data.Depth - 1 );
+			LayoutRebuilder.ForceRebuildLayoutImmediate( contentTransform );
 
 			background.sprite = data.Depth == 0 ? Hierarchy.SceneDrawerBackground : Hierarchy.TransformDrawerBackground;
 
