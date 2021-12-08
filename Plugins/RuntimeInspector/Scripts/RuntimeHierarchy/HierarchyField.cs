@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System;
 
 namespace RuntimeInspectorNamespace
 {
@@ -63,7 +64,7 @@ namespace RuntimeInspectorNamespace
 				}
 			}
 		}
-
+		public event Action<bool> OnSelect;
 		private bool m_isSelected;
 		public bool IsSelected
 		{
@@ -87,6 +88,8 @@ namespace RuntimeInspectorNamespace
 				textColor.a = m_isActive ? 1f : INACTIVE_ITEM_TEXT_ALPHA;
 				nameText.color = textColor;
 				multiSelectionToggle.isOn = m_isSelected;
+
+				OnSelect?.Invoke( m_isSelected );
 			}
 		}
 
