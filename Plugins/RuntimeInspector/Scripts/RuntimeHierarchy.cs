@@ -171,6 +171,9 @@ namespace RuntimeInspectorNamespace
 			set { m_pointerLongPressAction = value; }
 		}
 
+		[SerializeField]
+		private bool useInstantDrag;
+
 		[SerializeField, UnityEngine.Serialization.FormerlySerializedAs( "m_draggedReferenceHoldTime" )]
 		private float m_pointerLongPressDuration = 0.4f;
 		public float PointerLongPressDuration
@@ -619,23 +622,10 @@ namespace RuntimeInspectorNamespace
 				{
 					if( m_pointerLongPressAction == LongPressAction.CreateDraggedReferenceItem || ( m_pointerLongPressAction == LongPressAction.ShowMultiSelectionTogglesThenCreateDraggedReferenceItem && ( !m_allowMultiSelection || m_multiSelectionToggleSelectionMode ) ) )
 					{
-						Transform[] draggedReferences = currentlyPressedDrawer.IsSelected ? m_currentSelection.ToArray() : new Transform[1] { currentlyPressedDrawer.Data.BoundTransform };
-						if( draggedReferences.Length > 1 )
+						if (!useInstantDrag)
 						{
-							// The held drawer's Transform should be the first Transform in the array so that it'll be the Transform that will be received
-							// by RuntimeInspector's object reference drawers
-							int currentlyPressedDrawerIndex = System.Array.IndexOf( draggedReferences, currentlyPressedDrawer.Data.BoundTransform );
-							if( currentlyPressedDrawerIndex > 0 )
-							{
-								for( int i = currentlyPressedDrawerIndex; i > 0; i-- )
-									draggedReferences[i] = draggedReferences[i - 1];
-
-								draggedReferences[0] = currentlyPressedDrawer.Data.BoundTransform;
-							}
+							CreateDraggedReferenceItem( currentlyPressedDrawer, pressedDrawerActivePointer );
 						}
-
-						if( RuntimeInspectorUtils.CreateDraggedReferenceItem( draggedReferences, pressedDrawerActivePointer, Skin, m_canvas ) )
-							( (IPointerEnterHandler) dragDropListener ).OnPointerEnter( pressedDrawerActivePointer );
 					}
 					else if( m_allowMultiSelection && !m_multiSelectionToggleSelectionMode )
 					{
@@ -662,6 +652,27 @@ namespace RuntimeInspectorNamespace
 
 			if( m_autoScrollSpeed != 0f )
 				scrollView.verticalNormalizedPosition = Mathf.Clamp01( scrollView.verticalNormalizedPosition + m_autoScrollSpeed * Time.unscaledDeltaTime / totalItemCount );
+		}
+
+		private void CreateDraggedReferenceItem( HierarchyField currentlyPressedDrawer, PointerEventData pressedDrawerActivePointer )
+		{
+			Transform[] draggedReferences = currentlyPressedDrawer.IsSelected ? m_currentSelection.ToArray() : new Transform[1] { currentlyPressedDrawer.Data.BoundTransform };
+			if( draggedReferences.Length > 1 )
+			{
+				// The held drawer's Transform should be the first Transform in the array so that it'll be the Transform that will be received
+				// by RuntimeInspector's object reference drawers
+				int currentlyPressedDrawerIndex = System.Array.IndexOf( draggedReferences, currentlyPressedDrawer.Data.BoundTransform );
+				if( currentlyPressedDrawerIndex > 0 )
+				{
+					for( int i = currentlyPressedDrawerIndex; i > 0; i-- )
+						draggedReferences[i] = draggedReferences[i - 1];
+
+					draggedReferences[0] = currentlyPressedDrawer.Data.BoundTransform;
+				}
+			}
+
+			if( RuntimeInspectorUtils.CreateDraggedReferenceItem( draggedReferences, pressedDrawerActivePointer, Skin, m_canvas ) )
+				( (IPointerEnterHandler) dragDropListener ).OnPointerEnter( pressedDrawerActivePointer );
 		}
 
 		public void Refresh()
@@ -1117,6 +1128,14 @@ namespace RuntimeInspectorNamespace
 				currentlyPressedDrawer = drawer;
 				pressedDrawerActivePointer = eventData;
 				pressedDrawerDraggedReferenceCreateTime = Time.realtimeSinceStartup + m_pointerLongPressDuration;
+			}
+		}
+
+		public void OnDrawerBeginDrag( HierarchyField drawer, PointerEventData eventData )
+		{
+			if( useInstantDrag && drawer && drawer.gameObject.activeSelf && drawer.Data.BoundTransform )
+			{
+				CreateDraggedReferenceItem( drawer, eventData );
 			}
 		}
 
