@@ -2,6 +2,7 @@
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System;
+using System.Collections.Generic;
 
 namespace RuntimeInspectorNamespace
 {
@@ -15,6 +16,7 @@ namespace RuntimeInspectorNamespace
 #pragma warning disable 0649
 		[SerializeField]
 		private RectTransform contentTransform;
+		private LayoutGroup contentLayoutGroup;
 
 		[SerializeField]
 		private Text nameText;
@@ -64,8 +66,10 @@ namespace RuntimeInspectorNamespace
 				}
 			}
 		}
+
 		public event Action<bool> OnSelect;
 		private bool m_isSelected;
+
 		public bool IsSelected
 		{
 			get { return m_isSelected; }
@@ -136,11 +140,12 @@ namespace RuntimeInspectorNamespace
 				{
 					m_isExpanded = value;
 
+					//Change to arrow, because toggle element should stay active in the layout group 
 					if( m_isExpanded == ExpandedState.ArrowHidden )
-						expandToggle.gameObject.SetActive( false );
+						expandArrow.gameObject.SetActive( false );
 					else
 					{
-						expandToggle.gameObject.SetActive( true );
+						expandArrow.gameObject.SetActive( true );
 						expandArrow.rectTransform.localEulerAngles = m_isExpanded == ExpandedState.Expanded ? new Vector3( 0f, 0f, -90f ) : Vector3.zero;
 					}
 				}
@@ -161,6 +166,7 @@ namespace RuntimeInspectorNamespace
 
 			rectTransform = (RectTransform) transform;
 			background = clickListener.GetComponent<Image>();
+			contentLayoutGroup = contentTransform.GetComponent<LayoutGroup>();
 
 			if( hierarchy.ShowTooltips )
 				clickListener.gameObject.AddComponent<TooltipArea>().Initialize( hierarchy.TooltipListener, this );
@@ -175,10 +181,16 @@ namespace RuntimeInspectorNamespace
 		{
 			Data = data;
 
-			contentTransform.anchoredPosition = new Vector2( Skin.IndentAmount * data.Depth + ( MultiSelectionToggleVisible ? Skin.LineHeight * 0.8f : 0f ), 0f );
+			//contentTransform.anchoredPosition = new Vector2( Skin.IndentAmount * data.Depth + ( MultiSelectionToggleVisible ? Skin.LineHeight * 0.8f : 0f ), 0f );
+
+			//Modified indent (so the right anchored icons move correctly, with panel bounds)
+			contentTransform.anchoredPosition = new Vector2( ( MultiSelectionToggleVisible ? Skin.LineHeight * 0.8f : 0f ), 0f );
+			contentLayoutGroup.padding.left = Skin.IndentAmount * ( data.Depth - 1 < 0 ? 0 : data.Depth - 1 );
+
 			background.sprite = data.Depth == 0 ? Hierarchy.SceneDrawerBackground : Hierarchy.TransformDrawerBackground;
 
 			RefreshName();
+
 		}
 
 		private void ToggleExpandedState()
@@ -202,6 +214,7 @@ namespace RuntimeInspectorNamespace
 				PreferredWidth = Data.Depth * m_skin.IndentAmount + TEXT_X_OFFSET + nameText.rectTransform.sizeDelta.x;
 			}
 		}
+
 
 		private void OnPointerDown( PointerEventData eventData )
 		{
