@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using UnityEngine;
@@ -28,10 +30,6 @@ namespace RuntimeInspectorNamespace
 		private Text labelZ;
 #pragma warning restore 0649
 
-#if UNITY_2017_2_OR_NEWER
-		private bool isVector3Int;
-#endif
-
 		public override void Initialize()
 		{
 			base.Initialize();
@@ -40,13 +38,14 @@ namespace RuntimeInspectorNamespace
 			inputY.Initialize();
 			inputZ.Initialize();
 
-			inputX.OnValueChanged += OnValueChanged;
-			inputY.OnValueChanged += OnValueChanged;
-			inputZ.OnValueChanged += OnValueChanged;
+			inputX.OnValueChanged += ( _, input ) => OnValueChanged( input, 0 );
+			inputX.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 0 );
 
-			inputX.OnValueSubmitted += OnValueSubmitted;
-			inputY.OnValueSubmitted += OnValueSubmitted;
-			inputZ.OnValueSubmitted += OnValueSubmitted;
+			inputY.OnValueChanged += ( _, input ) => OnValueChanged( input, 1 );
+			inputY.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 1 );
+
+			inputZ.OnValueChanged += ( _, input ) => OnValueChanged( input, 2 );
+			inputZ.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 2 );
 
 			inputX.DefaultEmptyValue = "0";
 			inputY.DefaultEmptyValue = "0";
@@ -55,82 +54,90 @@ namespace RuntimeInspectorNamespace
 
 		public override bool SupportsType( Type type )
 		{
-#if UNITY_2017_2_OR_NEWER
-			if( type == typeof( Vector3Int ) )
-				return true;
-#endif
 			return type == typeof( Vector3 );
 		}
 
 		protected override void OnBound( MemberInfo variable )
 		{
 			base.OnBound( variable );
-
-#if UNITY_2017_2_OR_NEWER
-			isVector3Int = BoundVariableType == typeof( Vector3Int );
-			if( isVector3Int )
-			{
-				Vector3Int val = (Vector3Int) Value;
-				inputX.Text = val.x.ToString( RuntimeInspectorUtils.numberFormat );
-				inputY.Text = val.y.ToString( RuntimeInspectorUtils.numberFormat );
-				inputZ.Text = val.z.ToString( RuntimeInspectorUtils.numberFormat );
-			}
-			else
-#endif
-			{
-				Vector3 val = (Vector3) Value;
-				inputX.Text = val.x.ToString( RuntimeInspectorUtils.numberFormat );
-				inputY.Text = val.y.ToString( RuntimeInspectorUtils.numberFormat );
-				inputZ.Text = val.z.ToString( RuntimeInspectorUtils.numberFormat );
-			}
+			UpdateInputs();
 		}
 
-		private bool OnValueChanged( BoundInputField source, string input )
+		private bool OnValueChanged( string input, int coordinate )
 		{
-#if UNITY_2017_2_OR_NEWER
-			if( isVector3Int )
-			{
-				int value;
-				if( int.TryParse( input, NumberStyles.Integer, RuntimeInspectorUtils.numberFormat, out value ) )
-				{
-					Vector3Int val = (Vector3Int) Value;
-					if( source == inputX )
-						val.x = value;
-					else if( source == inputY )
-						val.y = value;
-					else
-						val.z = value;
+			if( !float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out float value ) )
+				return false;
 
-					Value = val;
-					return true;
+			if( Value is MultiValue multiValue )
+			{
+				var list = new List<Vector3>();
+				foreach( Vector3 oldV in multiValue )
+				{
+					Vector3 newV = oldV;
+					newV[coordinate] = value;
+					list.Add( newV );
+				}
+				Value = new MultiValue( list );
+			}
+			else
+			{
+				Vector3 newV = (Vector3) Value;
+				newV[coordinate] = value;
+				Value = newV;
+			}
+
+			return true;
+		}
+
+		protected virtual void UpdateInputs()
+		{
+			var coords = new float?[3];
+
+			if( Value is MultiValue multiValue )
+			{
+				int count = 0;
+				foreach( Vector3 v in multiValue )
+				{
+					count++;
+					if( count == 1 )
+					{
+						for( int i = 0; i < coords.Length; i++ )
+							coords[i] = v[i];
+						continue;
+					}
+
+					for( int i = 0; i < coords.Length; i++ )
+					{
+						float? coord = coords[i];
+						if( coord.HasValue )
+							if( coord.Value != v[i] )
+								coords[i] = null;
+					}
 				}
 			}
 			else
-#endif
 			{
-				float value;
-				if( float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out value ) )
-				{
-					Vector3 val = (Vector3) Value;
-					if( source == inputX )
-						val.x = value;
-					else if( source == inputY )
-						val.y = value;
-					else
-						val.z = value;
-
-					Value = val;
-					return true;
-				}
+				var v = (Vector3) Value;
+				for( int i = 0; i < coords.Length; i++ )
+					coords[i] = v[i];
 			}
 
-			return false;
+			inputX.HasMultipleValues = !coords[0].HasValue;
+			inputY.HasMultipleValues = !coords[1].HasValue;
+			inputZ.HasMultipleValues = !coords[2].HasValue;
+
+			if( coords[0].HasValue )
+				inputX.Text = coords[0].Value.ToString( RuntimeInspectorUtils.numberFormat );
+			if( coords[1].HasValue )
+				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
+			if( coords[2].HasValue )
+				inputZ.Text = coords[2].Value.ToString( RuntimeInspectorUtils.numberFormat );
 		}
 
-		private bool OnValueSubmitted( BoundInputField source, string input )
+		private bool OnValueSubmitted( string input, int coordinate )
 		{
 			Inspector.RefreshDelayed();
-			return OnValueChanged( source, input );
+			return OnValueChanged( input, coordinate );
 		}
 
 		protected override void OnSkinChanged()
@@ -162,48 +169,8 @@ namespace RuntimeInspectorNamespace
 
 		public override void Refresh()
 		{
-			if( HasMultipleValues )
-			{
-				inputX.HasMultipleValues = true;
-				inputY.HasMultipleValues = true;
-				inputZ.HasMultipleValues = true;
-				return;
-			}
-			else
-			{
-				inputX.HasMultipleValues = false;
-				inputY.HasMultipleValues = false;
-				inputZ.HasMultipleValues = false;
-			}
-
-#if UNITY_2017_2_OR_NEWER
-			if( isVector3Int )
-			{
-				Vector3Int prevVal = (Vector3Int) Value;
-				base.Refresh();
-				Vector3Int val = (Vector3Int) Value;
-
-				if( val.x != prevVal.x )
-					inputX.Text = val.x.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.y != prevVal.y )
-					inputY.Text = val.y.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.z != prevVal.z )
-					inputZ.Text = val.z.ToString( RuntimeInspectorUtils.numberFormat );
-			}
-			else
-#endif
-			{
-				Vector3 prevVal = (Vector3) Value;
-				base.Refresh();
-				Vector3 val = (Vector3) Value;
-
-				if( val.x != prevVal.x )
-					inputX.Text = val.x.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.y != prevVal.y )
-					inputY.Text = val.y.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.z != prevVal.z )
-					inputZ.Text = val.z.ToString( RuntimeInspectorUtils.numberFormat );
-			}
+			base.Refresh();
+			UpdateInputs();
 		}
 	}
 }

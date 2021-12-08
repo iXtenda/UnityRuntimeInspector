@@ -153,17 +153,22 @@ namespace RuntimeInspectorNamespace
 					foreach( Component comp in GetFilteredComponents( obj ) )
 					{
 						Dictionary<GameObject, Queue<Component>> dictInLut;
+						Queue<Component> queueInDictInLut;
 						Type compType = comp.GetType();
 
 						if( !lut.TryGetValue( compType, out dictInLut ) )
 						{
-							dictInLut = new Dictionary<GameObject, Queue<Component>>
-							{
-								{ obj, new Queue<Component>() },
-							};
+							dictInLut = new Dictionary<GameObject, Queue<Component>>();
+							lut[compType] = dictInLut;
 						}
 
-						dictInLut[obj].Enqueue( comp );
+						if( !dictInLut.TryGetValue( obj, out queueInDictInLut ) )
+						{
+							queueInDictInLut = new Queue<Component>();
+							dictInLut[obj] = queueInDictInLut;
+						}
+
+						queueInDictInLut.Enqueue( comp );
 					}
 				}
 

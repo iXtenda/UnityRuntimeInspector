@@ -1024,8 +1024,22 @@ namespace RuntimeInspectorNamespace
 		{
 			if( parent.HasMultipleValues )
 			{
-				foreach( var i in (IEnumerable) parent.Value )
-					setter( (TTarget) i, value );
+				if( value is MultiValue multiValue )
+				{
+					var valueEnumerator = multiValue.GetEnumerator();
+
+					foreach( var i in (IEnumerable) parent.Value )
+					{
+						valueEnumerator.MoveNext();
+						setter( (TTarget) i, (TValue) valueEnumerator.Current );
+					}
+				}
+				else
+				{
+					foreach( var i in (IEnumerable) parent.Value )
+						setter( (TTarget) i, value );
+				}
+
 				return;
 			}
 
