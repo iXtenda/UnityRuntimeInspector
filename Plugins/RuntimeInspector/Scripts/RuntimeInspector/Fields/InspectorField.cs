@@ -563,15 +563,7 @@ namespace RuntimeInspectorNamespace
 				if( variableName == null )
 					variableName = componentType.Name + " component";
 
-				variableDrawer.BindTo(
-					componentType,
-					string.Empty,
-					() => component,
-					value =>
-					{
-							Debug.Log(value);
-					}
-					);
+				variableDrawer.BindTo( componentType, string.Empty, () => component, _ => {} );
 				variableDrawer.NameRaw = variableName;
 
 				elements.Add( variableDrawer );
