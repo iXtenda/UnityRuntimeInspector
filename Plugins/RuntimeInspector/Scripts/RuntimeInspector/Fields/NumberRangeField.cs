@@ -74,7 +74,16 @@ namespace RuntimeInspectorNamespace
 		public override void Refresh()
 		{
 			base.Refresh();
-			slider.Value = numberHandler.ConvertToFloat( Value );
+
+			if( HasMultipleValues )
+			{
+				slider.HasMultipleValues = true;
+			}
+			else
+			{
+				slider.HasMultipleValues = false;
+				slider.Value = numberHandler.ConvertToFloat( Value );
+			}
 		}
 	}
 }
