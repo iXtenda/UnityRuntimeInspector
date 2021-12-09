@@ -160,7 +160,24 @@ namespace RuntimeInspectorNamespace
 				return string.Concat( "None (", defaultType.Name, ")" );
 			}
 
-			return ( obj is Object ) ? string.Concat( ( (Object) obj ).name, " (", obj.GetType().Name, ")" ) : obj.GetType().Name;
+			string typeName = obj.GetType().Name;
+			if( obj is MultiValue multiValue )
+			{
+				int count = 0;
+				foreach( object value in multiValue )
+				{
+					count++;
+					if( count == 1 )
+						typeName = value.GetType().Name;
+				}
+
+				return string.Concat( typeName, " [", count, "]" );
+			}
+
+			if( obj is Object unityObject )
+				return string.Concat( unityObject.name, " (", typeName, ")" );
+
+			return typeName;
 		}
 
 		public static Texture GetTexture( this Object obj )
