@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using UnityEngine;
@@ -6,7 +7,7 @@ using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public class Vector4Field : InspectorField
+    public class Vector4Field : InspectorField
 	{
 #pragma warning disable 0649
 		[SerializeField]
@@ -34,107 +35,124 @@ namespace RuntimeInspectorNamespace
 		private Text labelW;
 #pragma warning restore 0649
 
-		private bool isQuaternion;
-
-		protected override float HeightMultiplier { get { return 2f; } }
+#if UNITY_2017_2_OR_NEWER
+		private bool isVector4Int;
+#endif
 
 		public override void Initialize()
 		{
 			base.Initialize();
 
 			inputX.Initialize();
-			inputY.Initialize();
-			inputZ.Initialize();
-			inputW.Initialize();
-
-			inputX.OnValueChanged += OnValueChanged;
-			inputY.OnValueChanged += OnValueChanged;
-			inputZ.OnValueChanged += OnValueChanged;
-			inputW.OnValueChanged += OnValueChanged;
-
-			inputX.OnValueSubmitted += OnValueSubmitted;
-			inputY.OnValueSubmitted += OnValueSubmitted;
-			inputZ.OnValueSubmitted += OnValueSubmitted;
-			inputW.OnValueSubmitted += OnValueSubmitted;
-
+			inputX.OnValueChanged += ( _, input ) => OnValueChanged( input, 0 );
+			inputX.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 0 );
 			inputX.DefaultEmptyValue = "0";
+
+			inputY.Initialize();
+			inputY.OnValueChanged += ( _, input ) => OnValueChanged( input, 1 );
+			inputY.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 1 );
 			inputY.DefaultEmptyValue = "0";
+
+			inputZ.Initialize();
+			inputZ.OnValueChanged += ( _, input ) => OnValueChanged( input, 2 );
+			inputZ.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 2 );
 			inputZ.DefaultEmptyValue = "0";
+
+			inputW.Initialize();
+			inputW.OnValueChanged += ( _, input ) => OnValueChanged( input, 3 );
+			inputW.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 3 );
 			inputW.DefaultEmptyValue = "0";
 		}
 
 		public override bool SupportsType( Type type )
 		{
-			return type == typeof( Vector4 ) || type == typeof( Quaternion );
+			return type == typeof( Vector4 );
 		}
 
 		protected override void OnBound( MemberInfo variable )
 		{
 			base.OnBound( variable );
+			UpdateInputs();
+		}
 
-			isQuaternion = BoundVariableType == typeof( Quaternion );
-			if( isQuaternion )
+		private bool OnValueChanged( string input, int coordinate )
+		{
+			if( !float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out float value ) )
+				return false;
+
+			if( Value is MultiValue multiValue )
 			{
-				Quaternion val = (Quaternion) Value;
-				inputX.Text = val.x.ToString( RuntimeInspectorUtils.numberFormat );
-				inputY.Text = val.y.ToString( RuntimeInspectorUtils.numberFormat );
-				inputZ.Text = val.z.ToString( RuntimeInspectorUtils.numberFormat );
-				inputW.Text = val.w.ToString( RuntimeInspectorUtils.numberFormat );
+				var list = new List<Vector4>();
+				foreach( Vector4 oldV in multiValue )
+				{
+					Vector4 newV = oldV;
+					newV[coordinate] = value;
+					list.Add( newV );
+				}
+				Value = new MultiValue( list );
 			}
 			else
 			{
-				Vector4 val = (Vector4) Value;
-				inputX.Text = val.x.ToString( RuntimeInspectorUtils.numberFormat );
-				inputY.Text = val.y.ToString( RuntimeInspectorUtils.numberFormat );
-				inputZ.Text = val.z.ToString( RuntimeInspectorUtils.numberFormat );
-				inputW.Text = val.w.ToString( RuntimeInspectorUtils.numberFormat );
+				Vector4 newV = (Vector4) Value;
+				newV[coordinate] = value;
+				Value = newV;
 			}
+
+			return true;
 		}
 
-		private bool OnValueChanged( BoundInputField source, string input )
+		private void UpdateInputs()
 		{
-			float value;
-			if( float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out value ) )
+			var coords = new float?[4];
+
+			if( Value is MultiValue multiValue )
 			{
-				if( isQuaternion )
+				int count = 0;
+				foreach( Vector4 v in multiValue )
 				{
-					Quaternion val = (Quaternion) Value;
-					if( source == inputX )
-						val.x = value;
-					else if( source == inputY )
-						val.y = value;
-					else if( source == inputZ )
-						val.z = value;
-					else
-						val.w = value;
+					count++;
+					if( count == 1 )
+					{
+						for( int i = 0; i < coords.Length; i++ )
+							coords[i] = v[i];
+						continue;
+					}
 
-					Value = val;
+					for( int i = 0; i < coords.Length; i++ )
+					{
+						float? coord = coords[i];
+						if( coord.HasValue )
+							if( coord.Value != v[i] )
+								coords[i] = null;
+					}
 				}
-				else
-				{
-					Vector4 val = (Vector4) Value;
-					if( source == inputX )
-						val.x = value;
-					else if( source == inputY )
-						val.y = value;
-					else if( source == inputZ )
-						val.z = value;
-					else
-						val.w = value;
-
-					Value = val;
-				}
-
-				return true;
+			}
+			else
+			{
+				var v = (Vector4) Value;
+				for( int i = 0; i < coords.Length; i++ )
+					coords[i] = v[i];
 			}
 
-			return false;
+			inputX.HasMultipleValues = !coords[0].HasValue;
+			inputY.HasMultipleValues = !coords[1].HasValue;
+			inputZ.HasMultipleValues = !coords[2].HasValue;
+			inputW.HasMultipleValues = !coords[3].HasValue;
+
+			if( coords[0].HasValue )
+				inputX.Text = coords[0].Value.ToString( RuntimeInspectorUtils.numberFormat );
+			if( coords[1].HasValue )
+				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
+			if( coords[2].HasValue )
+				inputZ.Text = coords[2].Value.ToString( RuntimeInspectorUtils.numberFormat );
+			if( coords[3].HasValue )
+				inputW.Text = coords[3].Value.ToString( RuntimeInspectorUtils.numberFormat );
 		}
 
-		private bool OnValueSubmitted( BoundInputField source, string input )
+		private bool OnValueSubmitted( string input, int coordinate )
 		{
 			Inspector.RefreshDelayed();
-			return OnValueChanged( source, input );
+			return OnValueChanged( input, coordinate );
 		}
 
 		protected override void OnSkinChanged()
@@ -166,36 +184,8 @@ namespace RuntimeInspectorNamespace
 
 		public override void Refresh()
 		{
-			if( isQuaternion )
-			{
-				Quaternion prevVal = (Quaternion) Value;
-				base.Refresh();
-				Quaternion val = (Quaternion) Value;
-
-				if( val.x != prevVal.x )
-					inputX.Text = val.x.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.y != prevVal.y )
-					inputY.Text = val.y.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.z != prevVal.z )
-					inputZ.Text = val.z.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.w != prevVal.w )
-					inputW.Text = val.w.ToString( RuntimeInspectorUtils.numberFormat );
-			}
-			else
-			{
-				Vector4 prevVal = (Vector4) Value;
-				base.Refresh();
-				Vector4 val = (Vector4) Value;
-
-				if( val.x != prevVal.x )
-					inputX.Text = val.x.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.y != prevVal.y )
-					inputY.Text = val.y.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.z != prevVal.z )
-					inputZ.Text = val.z.ToString( RuntimeInspectorUtils.numberFormat );
-				if( val.w != prevVal.w )
-					inputW.Text = val.w.ToString( RuntimeInspectorUtils.numberFormat );
-			}
+			base.Refresh();
+			UpdateInputs();
 		}
 	}
 }
