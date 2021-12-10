@@ -107,10 +107,19 @@ namespace RuntimeInspectorNamespace
 		{
 			base.Refresh();
 
-			if( Value == null )
-				input.Text = string.Empty;
+			if( HasMultipleValues )
+			{
+				input.HasMultipleValues = true;
+			}
 			else
-				input.Text = (string) Value;
+			{
+				if( Value == null )
+					input.Text = string.Empty;
+				else
+					input.Text = (string) Value;
+
+				input.HasMultipleValues = false;
+			}
 		}
 
 		protected override void OnIsInteractableChanged()

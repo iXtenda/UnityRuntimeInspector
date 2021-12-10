@@ -7,6 +7,9 @@ namespace RuntimeInspectorNamespace
 	{
 		public delegate bool OnValueChangedDelegate( BoundInputField source, string input );
 
+		[SerializeField]
+		private Text multiValuesText;
+
 		private bool initialized = false;
 		private bool inputValid = true;
 		private bool inputAltered = false;
@@ -66,7 +69,22 @@ namespace RuntimeInspectorNamespace
 						placeholderColor.a = placeholderAlpha;
 						placeholder.color = placeholderColor;
 					}
+
+					if( multiValuesText )
+						multiValuesText.SetSkinInputFieldText( m_skin );
 				}
+			}
+		}
+
+		private bool m_hasMultipleValues;
+		public bool HasMultipleValues
+		{
+			get { return m_hasMultipleValues; }
+			set
+			{
+				m_hasMultipleValues = value;
+				if( !inputAltered )
+					OnHasMultipleValuesChanged( value );
 			}
 		}
 
@@ -101,6 +119,9 @@ namespace RuntimeInspectorNamespace
 
 			if( str == null || str.Length == 0 )
 				str = DefaultEmptyValue;
+
+			// Make changes visible even with multiple values
+			OnHasMultipleValuesChanged( false );
 
 			if( OnValueChanged != null )
 			{
@@ -137,6 +158,13 @@ namespace RuntimeInspectorNamespace
 
 			inputField.text = recentText;
 			inputValid = true;
+		}
+
+		private void OnHasMultipleValuesChanged( bool value )
+		{
+			inputField.textComponent.enabled = !value;
+			if( multiValuesText )
+				multiValuesText.enabled = value;
 		}
 	}
 }
