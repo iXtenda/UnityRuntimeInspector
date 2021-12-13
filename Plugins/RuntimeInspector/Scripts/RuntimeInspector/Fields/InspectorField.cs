@@ -484,6 +484,7 @@ namespace RuntimeInspectorNamespace
 
 			IsExpanded = false;
 			HeaderVisibility = RuntimeInspector.HeaderVisibility.Collapsible;
+			IsInteractable = true;
 
 			ClearElements();
 		}
