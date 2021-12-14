@@ -424,6 +424,16 @@ namespace RuntimeInspectorNamespace
 				currentDrawer.Skin = Skin;
 		}
 
+		public void Regenerate()
+		{
+			if( m_isLocked )
+				return;
+
+			object tmp = m_inspectedObject;
+			StopInspect();
+			InspectImpl( tmp, tmp is MultiValue );
+		}
+
 		public void Inspect( IEnumerable obj, bool multiple )
 		{
 			if( !m_isLocked )
