@@ -4,6 +4,7 @@ using TMPro;
 
 namespace RuntimeInspectorNamespace
 {
+	[RequireComponent(typeof(TMP_InputField))]
 	public class BoundInputField : MonoBehaviour
 	{
 		public delegate bool OnValueChangedDelegate( BoundInputField source, string input );
@@ -103,6 +104,9 @@ namespace RuntimeInspectorNamespace
 				return;
 
 			inputField = GetComponent<TMP_InputField>();
+			if( inputField == null )
+				return;
+
 			inputFieldBackground = GetComponent<Image>();
 
 			inputField.onValueChanged.AddListener( InputFieldValueChanged );
