@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace RuntimeInspectorNamespace
 {
@@ -14,9 +15,9 @@ namespace RuntimeInspectorNamespace
 		private bool inputValid = true;
 		private bool inputAltered = false;
 
-		private InputField inputField;
+		private TMP_InputField inputField;
 		private Image inputFieldBackground;
-		public InputField BackingField { get { return inputField; } }
+		public TMP_InputField BackingField { get { return inputField; } }
 
 		[System.NonSerialized]
 		public string DefaultEmptyValue = string.Empty;
@@ -59,7 +60,7 @@ namespace RuntimeInspectorNamespace
 					inputField.textComponent.SetSkinInputFieldText( m_skin );
 					inputFieldBackground.color = m_skin.InputFieldNormalBackgroundColor;
 
-					Text placeholder = inputField.placeholder as Text;
+					var placeholder = inputField.placeholder as TMP_Text;
 					if( placeholder != null )
 					{
 						float placeholderAlpha = placeholder.color.a;
@@ -101,7 +102,7 @@ namespace RuntimeInspectorNamespace
 			if( initialized )
 				return;
 
-			inputField = GetComponent<InputField>();
+			inputField = GetComponent<TMP_InputField>();
 			inputFieldBackground = GetComponent<Image>();
 
 			inputField.onValueChanged.AddListener( InputFieldValueChanged );

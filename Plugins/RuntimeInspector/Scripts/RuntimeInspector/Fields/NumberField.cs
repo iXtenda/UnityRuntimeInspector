@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 namespace RuntimeInspectorNamespace
 {
@@ -42,9 +42,9 @@ namespace RuntimeInspectorNamespace
 			base.OnBound( variable );
 
 			if( BoundVariableType == typeof( float ) || BoundVariableType == typeof( double ) || BoundVariableType == typeof( decimal ) )
-				input.BackingField.contentType = InputField.ContentType.DecimalNumber;
+				input.BackingField.contentType = TMP_InputField.ContentType.DecimalNumber;
 			else
-				input.BackingField.contentType = InputField.ContentType.IntegerNumber;
+				input.BackingField.contentType = TMP_InputField.ContentType.IntegerNumber;
 
 			numberHandler = NumberHandlers.Get( BoundVariableType );
 			UpdateInput();
