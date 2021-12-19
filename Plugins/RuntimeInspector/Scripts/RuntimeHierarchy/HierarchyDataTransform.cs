@@ -20,13 +20,14 @@ namespace RuntimeInspectorNamespace
 		{
 			get
 			{
-				if( isSearchEntry || !transform )
+				if( isSearchEntry || !transform || parent == null )
 					return 0;
 
+				RuntimeHierarchy hierarchy = Root.Hierarchy;
 				for( int i = transform.childCount - 1; i >= 0; i-- )
 				{
 					Transform child = transform.GetChild( i );
-					if( !RuntimeInspectorUtils.IgnoredTransformsInHierarchy.Contains( child ) && ( Root.Hierarchy.GameObjectFilter == null || Root.Hierarchy.GameObjectFilter.Invoke( child ) ) )
+					if( ( hierarchy.GameObjectFilter == null || hierarchy.GameObjectFilter( child ) ) && !RuntimeInspectorUtils.IgnoredTransformsInHierarchy.Contains( child ) )
 						return transform.childCount;
 				}
 
