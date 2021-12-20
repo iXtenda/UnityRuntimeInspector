@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -6,10 +7,27 @@ using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public abstract class InspectorField : MonoBehaviour, ITooltipContent
+    public class MultiValue : IEnumerable
+    {
+		IEnumerable value;
+
+        public MultiValue(IEnumerable value)
+        {
+			this.value = value;
+        }
+
+        public IEnumerator GetEnumerator()
+        {
+			return value.GetEnumerator();
+        }
+    }
+
+    public abstract class InspectorField : MonoBehaviour, ITooltipContent
 	{
 		public delegate object Getter();
 		public delegate void Setter( object value );
+
+		public delegate bool IsReadonlyGetter();
 
 #pragma warning disable 0649
 		[SerializeField]
@@ -66,8 +84,9 @@ namespace RuntimeInspectorNamespace
 			get { return m_value; }
 			protected set
 			{
-				try { setter( value ); m_value = value; }
-				catch { }
+				// try { setter( value ); m_value = value; }
+				// catch { }
+				setter( value ); m_value = value;
 			}
 		}
 
@@ -88,6 +107,43 @@ namespace RuntimeInspectorNamespace
 		private bool m_isVisible = true;
 		public bool IsVisible { get { return m_isVisible; } }
 
+		private bool m_isInteractableSelf = true;
+		private bool m_isInteractableInHierarchy = true;
+
+		public bool IsInteractable
+		{
+			get { return m_isInteractableInHierarchy && m_isInteractableSelf; }
+			set { IsInteractableInHierarchy = value; }
+		}
+
+		protected bool IsInteractableInHierarchy
+		{
+			get { return m_isInteractableInHierarchy; }
+			set
+			{
+				bool oldValue = IsInteractable;
+				m_isInteractableInHierarchy = value;
+				if (oldValue != IsInteractable)
+				{
+					OnIsInteractableChanged();
+				}
+			}
+		}
+
+		protected bool IsInteractableSelf
+		{
+			get { return m_isInteractableSelf; }
+			set
+			{
+				bool oldValue = IsInteractable;
+				m_isInteractableSelf = value;
+				if (oldValue != IsInteractable)
+				{
+					OnIsInteractableChanged();
+				}
+			}
+		}
+
 		public string Name
 		{
 			get { if( variableNameText ) return variableNameText.text; return string.Empty; }
@@ -104,11 +160,15 @@ namespace RuntimeInspectorNamespace
 		string ITooltipContent.TooltipText { get { return NameRaw; } }
 
 		public virtual bool ShouldRefresh { get { return m_isVisible; } }
+		public bool HasMultipleValues { get { return Value is MultiValue; } }
+
+		protected virtual bool SupportsMultipleValues { get { return false; } }
 
 		protected virtual float HeightMultiplier { get { return 1f; } }
 
 		private Getter getter;
 		private Setter setter;
+		private IsReadonlyGetter isReadonlyGetter;
 
 		public virtual void Initialize()
 		{
@@ -123,57 +183,83 @@ namespace RuntimeInspectorNamespace
 			return true;
 		}
 
-		public void BindTo( InspectorField parent, MemberInfo variable, string variableName = null )
+		public void BindTo(
+			InspectorField parent,
+			MemberInfo variable,
+			string variableName = null)
 		{
-			if( variable is FieldInfo )
-			{
-				FieldInfo field = (FieldInfo) variable;
-				if( variableName == null )
-					variableName = field.Name;
+			Type variableType;
+			Func<object, object> getter;
+			Action<object, object> setter;
 
-#if UNITY_EDITOR || !NETFX_CORE
-				if( !parent.BoundVariableType.IsValueType )
-#else
-				if( !parent.BoundVariableType.GetTypeInfo().IsValueType )
-#endif
-					BindTo( field.FieldType, variableName, () => field.GetValue( parent.Value ), ( value ) => field.SetValue( parent.Value, value ), variable );
-				else
-					BindTo( field.FieldType, variableName, () => field.GetValue( parent.Value ), ( value ) =>
-					{
-						field.SetValue( parent.Value, value );
-						parent.Value = parent.Value;
-					}, variable );
+			if( variable is FieldInfo field )
+			{
+				variableType = field.FieldType;
+				variableName ??= field.Name;
+				getter = field.GetValue;
+				setter = field.SetValue;
+
 			}
-			else if( variable is PropertyInfo )
+			else if( variable is PropertyInfo property )
 			{
-				PropertyInfo property = (PropertyInfo) variable;
-				if( variableName == null )
-					variableName = property.Name;
-
-#if UNITY_EDITOR || !NETFX_CORE
-				if( !parent.BoundVariableType.IsValueType )
-#else
-				if( !parent.BoundVariableType.GetTypeInfo().IsValueType )
-#endif
-					BindTo( property.PropertyType, variableName, () => property.GetValue( parent.Value, null ), ( value ) => property.SetValue( parent.Value, value, null ), variable );
-				else
-					BindTo( property.PropertyType, variableName, () => property.GetValue( parent.Value, null ), ( value ) =>
-					{
-						property.SetValue( parent.Value, value, null );
-						parent.Value = parent.Value;
-					}, variable );
+				variableType = property.PropertyType;
+				variableName ??= property.Name;
+				getter = property.GetValue;
+				setter = property.SetValue;
 			}
 			else
 				throw new ArgumentException( "Variable can either be a field or a property" );
+
+			BindTo( parent, variableType, variableName, getter, setter, variable );
 		}
 
-		public void BindTo( Type variableType, string variableName, Getter getter, Setter setter, MemberInfo variable = null )
+		public void BindTo<U, T>(
+			InspectorField parent,
+			string variableName,
+			Func<U, T> getter,
+			Action<U, T> setter,
+			MemberInfo variable = null)
+		{
+			BindTo(
+				typeof( T ),
+				variableName,
+				() => parent.GetUnique( getter ),
+				value => parent.SetEach( setter, (T) value ),
+				variable);
+		}
+
+		public void BindTo(
+			InspectorField parent,
+			Type variableType,
+			string variableName,
+			Func<object, object> getter,
+			Action<object, object> setter,
+			MemberInfo variable = null)
+		{
+			BindTo(
+				variableType,
+				variableName,
+				() => parent.GetUnique( getter ),
+				value => parent.SetEach( setter, value ),
+				variable);
+		}
+
+		public void BindTo(
+			Type variableType,
+			string variableName,
+			Getter getter,
+			Setter setter,
+			MemberInfo variable = null)
 		{
 			m_boundVariableType = variableType;
 			Name = variableName;
 
 			this.getter = getter;
 			this.setter = setter;
+
+			var attr = variable?.GetCustomAttribute<RuntimeInspectorReadonlyAttribute>();
+			if( attr != null )
+				isReadonlyGetter = attr.Getter;
 
 			OnBound( variable );
 		}
@@ -247,6 +333,17 @@ namespace RuntimeInspectorNamespace
 			RefreshValue();
 		}
 
+		protected virtual void OnIsInteractableChanged()
+		{
+			if( variableNameText )
+			{
+				if( IsInteractable )
+					variableNameText.color = Skin.TextColor;
+				else
+					variableNameText.color = Skin.InactiveTextColor;
+			}
+		}
+
 		private void RefreshValue()
 		{
 			try
@@ -263,6 +360,16 @@ namespace RuntimeInspectorNamespace
 					m_value = Activator.CreateInstance( BoundVariableType );
 				else
 					m_value = null;
+			}
+
+			if( isReadonlyGetter != null )
+			{
+				try
+				{
+					IsInteractableSelf = !isReadonlyGetter();
+				}
+				catch
+				{}
 			}
 		}
 	}
@@ -281,7 +388,7 @@ namespace RuntimeInspectorNamespace
 		private LayoutGroup layoutGroup;
 
 		[SerializeField]
-		private Image expandArrow; // Expand Arrow's sprite should look right at 0 rotation
+		private Graphic expandArrow; // Expand Arrow's sprite should look right at 0 rotation
 #pragma warning restore 0649
 
 		protected readonly List<InspectorField> elements = new List<InspectorField>( 8 );
@@ -377,6 +484,7 @@ namespace RuntimeInspectorNamespace
 
 			IsExpanded = false;
 			HeaderVisibility = RuntimeInspector.HeaderVisibility.Collapsible;
+			IsInteractable = true;
 
 			ClearElements();
 		}
@@ -427,6 +535,13 @@ namespace RuntimeInspectorNamespace
 
 			for( int i = 0; i < elements.Count; i++ )
 				elements[i].Depth = Depth + 1;
+		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			for( int i = 0; i < elements.Count; i++ )
+				elements[i].IsInteractable = IsInteractable;
 		}
 
 		protected void RegenerateElements()
@@ -492,15 +607,37 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
+		public InspectorField CreateDrawerForComponent( IEnumerable<Component> components, string variableName = null )
+		{
+			Component first = null;
+			foreach( Component c in components )
+			{
+				if( first == null )
+					first = c;
+				else
+					// There is more than one entry in 'components'
+					return CreateDrawerForComponent( first.GetType(), new MultiValue( components ), variableName );
+			}
+
+			// There is only one entry in 'components'. Pass it directly.
+			return CreateDrawerForComponent( first.GetType(), first, variableName );
+		}
+
 		public InspectorField CreateDrawerForComponent( Component component, string variableName = null )
 		{
-			InspectorField variableDrawer = Inspector.CreateDrawerForType( component.GetType(), drawArea, Depth + 1, false );
+			return CreateDrawerForComponent( component.GetType(), component, variableName );
+		}
+
+		private InspectorField CreateDrawerForComponent( Type componentType, object component, string variableName )
+		{
+			InspectorField variableDrawer = Inspector.CreateDrawerForType( componentType, drawArea, Depth + 1, false );
 			if( variableDrawer != null )
 			{
 				if( variableName == null )
-					variableName = component.GetType().Name + " component";
+					variableName = componentType.Name + " component";
 
-				variableDrawer.BindTo( component.GetType(), string.Empty, () => component, ( value ) => { } );
+				variableDrawer.BindTo( componentType, string.Empty, () => component, _ => {} );
+				variableDrawer.IsInteractable = IsInteractable;
 				variableDrawer.NameRaw = variableName;
 
 				elements.Add( variableDrawer );
@@ -525,12 +662,32 @@ namespace RuntimeInspectorNamespace
 			return variableDrawer;
 		}
 
-		public InspectorField CreateDrawer( Type variableType, string variableName, Getter getter, Setter setter, bool drawObjectsAsFields = true )
+		public InspectorField CreateDrawer<U, T>(
+			string variableName,
+			Func<U, T> getter,
+			Action<U, T> setter,
+			bool drawObjectsAsFields = true)
+		{
+			return CreateDrawer(
+				typeof( T ),
+				variableName,
+				() => this.GetUnique( getter ),
+				value => this.SetEach( setter, (T) value ),
+				drawObjectsAsFields);
+		}
+
+		public InspectorField CreateDrawer(
+			Type variableType,
+			string variableName,
+			Getter getter,
+			Setter setter,
+			bool drawObjectsAsFields = true)
 		{
 			InspectorField variableDrawer = Inspector.CreateDrawerForType( variableType, drawArea, Depth + 1, drawObjectsAsFields );
 			if( variableDrawer != null )
 			{
 				variableDrawer.BindTo( variableType, variableName == null ? null : string.Empty, getter, setter );
+				variableDrawer.IsInteractable = IsInteractable;
 				if( variableName != null )
 					variableDrawer.NameRaw = variableName;
 

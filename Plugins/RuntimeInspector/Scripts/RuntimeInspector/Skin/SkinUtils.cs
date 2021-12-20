@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace RuntimeInspectorNamespace
 {
@@ -12,9 +13,16 @@ namespace RuntimeInspectorNamespace
 			text.fontSize = skin.FontSize;
 		}
 
+		public static void SetSkinInputFieldText( this TMP_Text text, UISkin skin )
+		{
+			text.color = skin.InputFieldTextColor;
+			// text.font = skin.Font;
+			text.fontSize = skin.InputFontSize;
+		}
+
 		public static void SetSkinInputFieldText( this Text text, UISkin skin )
 		{
-			//text.color = skin.InputFieldTextColor;
+			text.color = skin.InputFieldTextColor;
 			text.font = skin.Font;
 			text.fontSize = skin.InputFontSize;
 		}

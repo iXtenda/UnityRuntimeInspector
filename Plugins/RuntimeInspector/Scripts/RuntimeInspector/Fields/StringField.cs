@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 namespace RuntimeInspectorNamespace
 {
@@ -63,8 +63,8 @@ namespace RuntimeInspectorNamespace
 
 			if( prevLineCount != lineCount )
 			{
-				input.BackingField.lineType = lineCount > 1 ? InputField.LineType.MultiLineNewline : InputField.LineType.SingleLine;
-				input.BackingField.textComponent.alignment = lineCount > 1 ? TextAnchor.UpperLeft : TextAnchor.MiddleLeft;
+				input.BackingField.lineType = lineCount > 1 ? TMP_InputField.LineType.MultiLineNewline : TMP_InputField.LineType.SingleLine;
+				input.BackingField.textComponent.alignment = lineCount > 1 ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
 
 				OnSkinChanged();
 			}
@@ -107,10 +107,26 @@ namespace RuntimeInspectorNamespace
 		{
 			base.Refresh();
 
-			if( Value == null )
-				input.Text = string.Empty;
+			if( HasMultipleValues )
+			{
+				input.HasMultipleValues = true;
+			}
 			else
-				input.Text = (string) Value;
+			{
+				if( Value == null )
+					input.Text = string.Empty;
+				else
+					input.Text = (string) Value;
+
+				input.HasMultipleValues = false;
+			}
+		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			input.BackingField.interactable = IsInteractable;
+			input.BackingField.textComponent.color = this.GetTextColor();
 		}
 	}
 }

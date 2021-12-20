@@ -71,10 +71,25 @@ namespace RuntimeInspectorNamespace
 			( (RectTransform) input.transform ).anchorMin = new Vector2( 1f - inputFieldWidth, 0f );
 		}
 
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			slider.BackingField.interactable = IsInteractable;
+		}
+
 		public override void Refresh()
 		{
 			base.Refresh();
-			slider.Value = numberHandler.ConvertToFloat( Value );
+
+			if( HasMultipleValues )
+			{
+				slider.HasMultipleValues = true;
+			}
+			else
+			{
+				slider.HasMultipleValues = false;
+				slider.Value = numberHandler.ConvertToFloat( Value );
+			}
 		}
 	}
 }

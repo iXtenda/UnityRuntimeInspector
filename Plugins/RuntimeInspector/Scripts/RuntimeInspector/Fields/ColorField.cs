@@ -14,6 +14,10 @@ namespace RuntimeInspectorNamespace
 
 		[SerializeField]
 		private PointerEventListener inputColor;
+
+		[SerializeField]
+		private Text multiValueText;
+
 		private Image colorImg;
 #pragma warning restore 0649
 
@@ -40,10 +44,24 @@ namespace RuntimeInspectorNamespace
 
 		private void ShowColorPicker( PointerEventData eventData )
 		{
-			Color value = isColor32 ? (Color) (Color32) Value : (Color) Value;
+			if( !IsInteractable )
+				return;
+
+			Color initial;
+			object initialValue = Value;
+
+			if( HasMultipleValues )
+				initial = Color.white;
+			else
+				initial = isColor32 ? (Color) (Color32) Value : (Color) Value;
 
 			ColorPicker.Instance.Skin = Inspector.Skin;
-			ColorPicker.Instance.Show( OnColorChanged, null, value, Inspector.Canvas );
+			ColorPicker.Instance.Show(
+				OnColorChanged,
+				null,
+				initial,
+				Inspector.Canvas,
+				() => Value = initialValue );
 		}
 
 		private void OnColorChanged( Color32 color )
@@ -63,11 +81,21 @@ namespace RuntimeInspectorNamespace
 			Vector2 rightSideAnchorMin = new Vector2( Skin.LabelWidthPercentage, 0f );
 			variableNameMask.rectTransform.anchorMin = rightSideAnchorMin;
 			colorPickerArea.anchorMin = rightSideAnchorMin;
+			multiValueText.SetSkinInputFieldText( Skin );
 		}
 
 		public override void Refresh()
 		{
 			base.Refresh();
+
+			if( HasMultipleValues )
+			{
+				colorImg.color = Skin.InputFieldNormalBackgroundColor;
+				multiValueText.enabled = true;
+				return;
+			}
+
+			multiValueText.enabled = false;
 
 			if( isColor32 )
 				colorImg.color = (Color32) Value;

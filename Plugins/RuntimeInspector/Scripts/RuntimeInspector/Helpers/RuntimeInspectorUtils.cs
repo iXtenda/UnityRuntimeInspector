@@ -1,6 +1,7 @@
 ﻿#define EXCLUDE_BACKING_FIELDS_FROM_VARIABLES
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
@@ -159,7 +160,24 @@ namespace RuntimeInspectorNamespace
 				return string.Concat( "None (", defaultType.Name, ")" );
 			}
 
-			return ( obj is Object ) ? string.Concat( ( (Object) obj ).name, " (", obj.GetType().Name, ")" ) : obj.GetType().Name;
+			string typeName = obj.GetType().Name;
+			if( obj is MultiValue multiValue )
+			{
+				int count = 0;
+				foreach( object value in multiValue )
+				{
+					count++;
+					if( count == 1 )
+						typeName = value.GetType().Name;
+				}
+
+				return string.Concat( typeName, " [", count, "]" );
+			}
+
+			if( obj is Object unityObject )
+				return string.Concat( unityObject.name, " (", typeName, ")" );
+
+			return typeName;
 		}
 
 		public static Texture GetTexture( this Object obj )
@@ -988,6 +1006,68 @@ namespace RuntimeInspectorNamespace
 			}
 
 			return null;
+		}
+
+		public static Color GetTextColor( this InspectorField drawer )
+		{
+			if( drawer.IsInteractable )
+				return drawer.Skin.TextColor;
+			return drawer.Skin.InactiveTextColor;
+		}
+
+		public static T First<T>( this IEnumerable<T> enumerable )
+		{
+			using (var iter = enumerable.GetEnumerator())
+			{
+				iter.MoveNext();
+				return iter.Current;
+			}
+		}
+
+		public static object GetUnique<TTarget, TValue>(this InspectorField parent, Func<TTarget, TValue> getter )
+		{
+			if( !parent.HasMultipleValues )
+				return getter( (TTarget) parent.Value );
+
+			var values = new HashSet<TValue>();
+			foreach( var i in (IEnumerable) parent.Value )
+				values.Add( getter( (TTarget) i ) );
+
+			switch( values.Count )
+			{
+				case 0:
+					return null;
+				case 1:
+					return values.First();
+				default:
+					return new MultiValue( values );
+			}
+		}
+
+		public static void SetEach<TTarget, TValue>( this InspectorField parent, Action<TTarget, TValue> setter, TValue value )
+		{
+			if( parent.HasMultipleValues )
+			{
+				if( value is MultiValue multiValue )
+				{
+					var valueEnumerator = multiValue.GetEnumerator();
+
+					foreach( var i in (IEnumerable) parent.Value )
+					{
+						valueEnumerator.MoveNext();
+						setter( (TTarget) i, (TValue) valueEnumerator.Current );
+					}
+				}
+				else
+				{
+					foreach( var i in (IEnumerable) parent.Value )
+						setter( (TTarget) i, value );
+				}
+
+				return;
+			}
+
+			setter( (TTarget) parent.Value, value );
 		}
 	}
 }

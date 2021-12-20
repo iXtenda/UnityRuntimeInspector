@@ -1,19 +1,24 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace RuntimeInspectorNamespace
 {
+	[RequireComponent(typeof(TMP_InputField))]
 	public class BoundInputField : MonoBehaviour
 	{
 		public delegate bool OnValueChangedDelegate( BoundInputField source, string input );
+
+		[SerializeField]
+		private Text multiValuesText;
 
 		private bool initialized = false;
 		private bool inputValid = true;
 		private bool inputAltered = false;
 
-		private InputField inputField;
+		private TMP_InputField inputField;
 		private Image inputFieldBackground;
-		public InputField BackingField { get { return inputField; } }
+		public TMP_InputField BackingField { get { return inputField; } }
 
 		[System.NonSerialized]
 		public string DefaultEmptyValue = string.Empty;
@@ -56,7 +61,7 @@ namespace RuntimeInspectorNamespace
 					inputField.textComponent.SetSkinInputFieldText( m_skin );
 					inputFieldBackground.color = m_skin.InputFieldNormalBackgroundColor;
 
-					Text placeholder = inputField.placeholder as Text;
+					var placeholder = inputField.placeholder as TMP_Text;
 					if( placeholder != null )
 					{
 						float placeholderAlpha = placeholder.color.a;
@@ -66,7 +71,22 @@ namespace RuntimeInspectorNamespace
 						placeholderColor.a = placeholderAlpha;
 						placeholder.color = placeholderColor;
 					}
+
+					if( multiValuesText )
+						multiValuesText.SetSkinInputFieldText( m_skin );
 				}
+			}
+		}
+
+		private bool m_hasMultipleValues;
+		public bool HasMultipleValues
+		{
+			get { return m_hasMultipleValues; }
+			set
+			{
+				m_hasMultipleValues = value;
+				if( !inputAltered )
+					OnHasMultipleValuesChanged( value );
 			}
 		}
 
@@ -83,7 +103,10 @@ namespace RuntimeInspectorNamespace
 			if( initialized )
 				return;
 
-			inputField = GetComponent<InputField>();
+			inputField = GetComponent<TMP_InputField>();
+			if( inputField == null )
+				return;
+
 			inputFieldBackground = GetComponent<Image>();
 
 			inputField.onValueChanged.AddListener( InputFieldValueChanged );
@@ -101,6 +124,9 @@ namespace RuntimeInspectorNamespace
 
 			if( str == null || str.Length == 0 )
 				str = DefaultEmptyValue;
+
+			// Make changes visible even with multiple values
+			OnHasMultipleValuesChanged( false );
 
 			if( OnValueChanged != null )
 			{
@@ -137,6 +163,13 @@ namespace RuntimeInspectorNamespace
 
 			inputField.text = recentText;
 			inputValid = true;
+		}
+
+		private void OnHasMultipleValuesChanged( bool value )
+		{
+			inputField.textComponent.enabled = !value;
+			if( multiValuesText )
+				multiValuesText.enabled = value;
 		}
 	}
 }

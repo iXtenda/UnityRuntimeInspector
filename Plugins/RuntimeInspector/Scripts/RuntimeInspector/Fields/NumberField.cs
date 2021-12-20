@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 namespace RuntimeInspectorNamespace
 {
@@ -42,12 +42,12 @@ namespace RuntimeInspectorNamespace
 			base.OnBound( variable );
 
 			if( BoundVariableType == typeof( float ) || BoundVariableType == typeof( double ) || BoundVariableType == typeof( decimal ) )
-				input.BackingField.contentType = InputField.ContentType.DecimalNumber;
+				input.BackingField.contentType = TMP_InputField.ContentType.DecimalNumber;
 			else
-				input.BackingField.contentType = InputField.ContentType.IntegerNumber;
+				input.BackingField.contentType = TMP_InputField.ContentType.IntegerNumber;
 
 			numberHandler = NumberHandlers.Get( BoundVariableType );
-			input.Text = numberHandler.ToString( Value );
+			UpdateInput();
 		}
 
 		protected virtual bool OnValueChanged( BoundInputField source, string input )
@@ -80,11 +80,28 @@ namespace RuntimeInspectorNamespace
 
 		public override void Refresh()
 		{
-			object prevVal = Value;
 			base.Refresh();
+			UpdateInput();
+		}
 
-			if( !numberHandler.ValuesAreEqual( Value, prevVal ) )
+		private void UpdateInput()
+		{
+			if( HasMultipleValues )
+			{
+				input.HasMultipleValues = true;
+			}
+			else
+			{
 				input.Text = numberHandler.ToString( Value );
+				input.HasMultipleValues = false;
+			}
+		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			input.BackingField.interactable = IsInteractable;
+			input.BackingField.textComponent.color = this.GetTextColor();
 		}
 	}
 }

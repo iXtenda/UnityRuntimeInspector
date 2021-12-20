@@ -41,6 +41,19 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
+		private Type ValueType
+		{
+			get
+			{
+				if( Value is MultiValue multiValue )
+				{
+					foreach( object value in multiValue )
+						return value.GetType();
+				}
+				return Value.GetType();
+			}
+		}
+
 		public override void Initialize()
 		{
 			base.Initialize();
@@ -68,7 +81,7 @@ namespace RuntimeInspectorNamespace
 
 			initializeObjectButton.gameObject.SetActive( false );
 
-			if( ( customEditor = RuntimeInspectorUtils.GetCustomEditor( Value.GetType() ) ) != null )
+			if( ( customEditor = RuntimeInspectorUtils.GetCustomEditor( ValueType ) ) != null )
 				customEditor.GenerateElements( this );
 			else
 				CreateDrawersForVariables();
@@ -99,20 +112,24 @@ namespace RuntimeInspectorNamespace
 				customEditor.Refresh();
 		}
 
+		public void CreateDrawersForVariables()
+		{
+			foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( ValueType ) )
+				CreateDrawerForVariable( variable );
+		}
+
 		public void CreateDrawersForVariables( params string[] variables )
 		{
 			if( variables == null || variables.Length == 0 )
 			{
-				foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( Value.GetType() ) )
-					CreateDrawerForVariable( variable );
+				CreateDrawersForVariables();
+				return;
 			}
-			else
+
+			foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( ValueType ) )
 			{
-				foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( Value.GetType() ) )
-				{
-					if( Array.IndexOf( variables, variable.Name ) >= 0 )
-						CreateDrawerForVariable( variable );
-				}
+				if( Array.IndexOf( variables, variable.Name ) >= 0 )
+					CreateDrawerForVariable( variable );
 			}
 		}
 
@@ -120,16 +137,14 @@ namespace RuntimeInspectorNamespace
 		{
 			if( variablesToExclude == null || variablesToExclude.Length == 0 )
 			{
-				foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( Value.GetType() ) )
-					CreateDrawerForVariable( variable );
+				CreateDrawersForVariables();
+				return;
 			}
-			else
+
+			foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( ValueType ) )
 			{
-				foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( Value.GetType() ) )
-				{
-					if( Array.IndexOf( variablesToExclude, variable.Name ) < 0 )
-						CreateDrawerForVariable( variable );
-				}
+				if( Array.IndexOf( variablesToExclude, variable.Name ) < 0 )
+					CreateDrawerForVariable( variable );
 			}
 		}
 
@@ -170,6 +185,14 @@ namespace RuntimeInspectorNamespace
 				RegenerateElements();
 				IsExpanded = true;
 			}
+		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			initializeObjectButton.interactable = IsInteractable;
+			Text buttonText = initializeObjectButton.GetComponentInChildren<Text>();
+			buttonText.color = this.GetTextColor();
 		}
 	}
 }
