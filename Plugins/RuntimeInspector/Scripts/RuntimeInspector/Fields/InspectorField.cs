@@ -213,11 +213,11 @@ namespace RuntimeInspectorNamespace
 			BindTo( parent, variableType, variableName, getter, setter, variable );
 		}
 
-		public void BindTo<T>(
+		public void BindTo<U, T>(
 			InspectorField parent,
 			string variableName,
-			Func<object, T> getter,
-			Action<object, T> setter,
+			Func<U, T> getter,
+			Action<U, T> setter,
 			MemberInfo variable = null)
 		{
 			BindTo(
@@ -388,7 +388,7 @@ namespace RuntimeInspectorNamespace
 		private LayoutGroup layoutGroup;
 
 		[SerializeField]
-		private Image expandArrow; // Expand Arrow's sprite should look right at 0 rotation
+		private Graphic expandArrow; // Expand Arrow's sprite should look right at 0 rotation
 #pragma warning restore 0649
 
 		protected readonly List<InspectorField> elements = new List<InspectorField>( 8 );
