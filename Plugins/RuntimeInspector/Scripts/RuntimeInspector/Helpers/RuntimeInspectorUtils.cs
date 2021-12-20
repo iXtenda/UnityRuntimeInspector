@@ -1015,7 +1015,7 @@ namespace RuntimeInspectorNamespace
 			return drawer.Skin.InactiveTextColor;
 		}
 
-		public static T First<T>( this IEnumerable<T> enumerable )
+		public static T GetFirst<T>( this IEnumerable<T> enumerable )
 		{
 			using (var iter = enumerable.GetEnumerator())
 			{
@@ -1038,7 +1038,7 @@ namespace RuntimeInspectorNamespace
 				case 0:
 					return null;
 				case 1:
-					return values.First();
+					return values.GetFirst();
 				default:
 					return new MultiValue( values );
 			}
