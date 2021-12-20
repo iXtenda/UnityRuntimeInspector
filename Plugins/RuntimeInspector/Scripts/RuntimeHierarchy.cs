@@ -380,6 +380,7 @@ namespace RuntimeInspectorNamespace
 
 		private readonly List<Transform> m_currentSelection = new List<Transform>( 16 );
 		public ReadOnlyCollection<Transform> CurrentSelection { get { return m_currentSelection.AsReadOnly(); } }
+		protected ReadOnlyCollection<HierarchyField> Drawers { get { return drawers.AsReadOnly(); } }
 
 		// Stores the selected Transforms' instanceIDs. An object's instanceID can be retrieved via GetInstanceID() but it
 		// makes an unnecessary "EnsureRunningOnMainThread()" call. Luckily, GetHashCode() also returns the instanceID and
@@ -1282,8 +1283,6 @@ namespace RuntimeInspectorNamespace
 				}
 			}
 
-			RefreshListView();
-
 			if( itemToFocus != null )
 			{
 				// Focus on the latest selected HierarchyItem
@@ -1308,9 +1307,13 @@ namespace RuntimeInspectorNamespace
 					}
 				}
 
+				RefreshListView();
+
 				// When itemToFocus isn't null, it also means that we were successfully able to expand the selection's parents in the hierarchy
 				return true;
 			}
+
+			RefreshListView();
 
 			return false;
 		}
