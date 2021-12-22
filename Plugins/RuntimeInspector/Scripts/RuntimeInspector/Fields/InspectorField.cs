@@ -426,7 +426,7 @@ namespace RuntimeInspectorNamespace
 					if( m_headerVisibility == RuntimeInspector.HeaderVisibility.Hidden )
 					{
 						Depth++;
-						layoutGroup.padding.top = Skin.LineHeight;
+						layoutGroup.padding.top = 0;
 						expandToggle.gameObject.SetActive( true );
 					}
 					else if( value == RuntimeInspector.HeaderVisibility.Hidden )
@@ -507,7 +507,8 @@ namespace RuntimeInspectorNamespace
 
 			if( m_headerVisibility != RuntimeInspector.HeaderVisibility.Hidden )
 			{
-				layoutGroup.padding.top = Skin.LineHeight;
+				//Remove auto padding
+				//layoutGroup.padding.top = Skin.LineHeight;
 
 				if( m_headerVisibility == RuntimeInspector.HeaderVisibility.Collapsible )
 					variableNameText.rectTransform.sizeDelta = new Vector2( -( Skin.ExpandArrowSpacing + Skin.LineHeight * 0.5f ), 0f );
@@ -516,8 +517,9 @@ namespace RuntimeInspectorNamespace
 			if( expandArrow != null )
 			{
 				expandArrow.color = Skin.ExpandArrowColor;
-				expandArrow.rectTransform.anchoredPosition = new Vector2( Skin.LineHeight * 0.25f, 0f );
-				expandArrow.rectTransform.sizeDelta = new Vector2( Skin.LineHeight * 0.5f, Skin.LineHeight * 0.5f );
+				//Remove sprite rescale
+				//expandArrow.rectTransform.anchoredPosition = new Vector2( Skin.LineHeight * 0.25f, 0f );
+				//expandArrow.rectTransform.sizeDelta = new Vector2( Skin.LineHeight * 0.5f, Skin.LineHeight * 0.5f );
 			}
 
 			for( int i = 0; i < elements.Count; i++ )
