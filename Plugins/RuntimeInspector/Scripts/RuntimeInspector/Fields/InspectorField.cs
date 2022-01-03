@@ -224,7 +224,7 @@ namespace RuntimeInspectorNamespace
 				typeof( T ),
 				variableName,
 				() => parent.GetUnique( getter ),
-				value => parent.SetEach( setter, (T) value ),
+				value => parent.SetEach( setter, value ),
 				variable);
 		}
 
@@ -674,7 +674,7 @@ namespace RuntimeInspectorNamespace
 				typeof( T ),
 				variableName,
 				() => this.GetUnique( getter ),
-				value => this.SetEach( setter, (T) value ),
+				value => this.SetEach( setter, value ),
 				drawObjectsAsFields);
 		}
 

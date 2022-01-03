@@ -1044,7 +1044,7 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		public static void SetEach<TTarget, TValue>( this InspectorField parent, Action<TTarget, TValue> setter, TValue value )
+		public static void SetEach<TTarget, TValue>( this InspectorField parent, Action<TTarget, TValue> setter, object value )
 		{
 			if( parent.HasMultipleValues )
 			{
@@ -1061,13 +1061,13 @@ namespace RuntimeInspectorNamespace
 				else
 				{
 					foreach( var i in (IEnumerable) parent.Value )
-						setter( (TTarget) i, value );
+						setter( (TTarget) i, (TValue) value );
 				}
 
 				return;
 			}
 
-			setter( (TTarget) parent.Value, value );
+			setter( (TTarget) parent.Value, (TValue) value );
 		}
 	}
 }
