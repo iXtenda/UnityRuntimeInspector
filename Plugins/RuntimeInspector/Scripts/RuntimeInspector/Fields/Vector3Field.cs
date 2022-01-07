@@ -186,6 +186,11 @@ namespace RuntimeInspectorNamespace
 				inputZ.Text = coords[2].Value.ToString( RuntimeInspectorUtils.numberFormat );
 		}
 
+		private bool ApproxEqual(float a, float b)
+		{
+			return Math.Abs( a - b ) < 0.001f;
+		}
+
 		private void UpdateInputsFromFloat()
 		{
 			var coords = new float?[3];
@@ -207,7 +212,7 @@ namespace RuntimeInspectorNamespace
 					{
 						float? coord = coords[i];
 						if( coord.HasValue )
-							if( coord.Value != v[i] )
+							if( !ApproxEqual( coord.Value, v[i] ) )
 								coords[i] = null;
 					}
 				}
