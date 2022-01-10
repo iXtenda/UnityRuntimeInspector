@@ -79,6 +79,13 @@ namespace RuntimeInspectorNamespace
 			return obj == null;
 		}
 
+		public const float FLOAT_EQUAL_ERROR = 0.0001f;
+		public static bool ApproxEqual(this float a, float b)
+			=> Math.Abs( a - b ) < FLOAT_EQUAL_ERROR;
+
+		public static bool ApproxEqual(this double a, double b)
+			=> Math.Abs( a - b ) < FLOAT_EQUAL_ERROR;
+
 		// Checks if all the objects inside the IList are null
 		public static bool IsEmpty<T>( this IList<T> objects )
 		{

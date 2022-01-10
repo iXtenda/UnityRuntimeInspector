@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using TMPro;
+using System.Collections;
 
 namespace RuntimeInspectorNamespace
 {
@@ -86,15 +87,33 @@ namespace RuntimeInspectorNamespace
 
 		private void UpdateInput()
 		{
-			if( HasMultipleValues )
+			object first = null;
+
+			// Regard "approximate equality" for float and double used in
+			// NumberHandlers
+			if( Value is IEnumerable enumerable )
 			{
-				input.HasMultipleValues = true;
+				foreach( object f in enumerable )
+				{
+					if( first == null )
+					{
+						first = f;
+						continue;
+					}
+
+					if( !numberHandler.ValuesAreEqual( first, f ) )
+					{
+						input.HasMultipleValues = true;
+						return;
+					}
+				}
 			}
-			else
-			{
-				input.Text = numberHandler.ToString( Value );
-				input.HasMultipleValues = false;
-			}
+
+			if( first == null )
+				first = Value;
+
+			input.HasMultipleValues = false;
+			input.Text = numberHandler.ToString( first );
 		}
 
 		protected override void OnIsInteractableChanged()

@@ -153,7 +153,7 @@ namespace RuntimeInspectorNamespace
 			public float MaxValue { get { return float.MaxValue; } }
 
 			public bool TryParse( string input, out object value ) { float parsedVal; bool result = float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out parsedVal ); value = parsedVal; return result; }
-			public bool ValuesAreEqual( object value1, object value2 ) { return (float) value1 == (float) value2; }
+			public bool ValuesAreEqual( object value1, object value2 ) { return RuntimeInspectorUtils.ApproxEqual( (float) value1, (float) value2 ); }
 
 			public object ConvertFromFloat( float value ) { return value; }
 			public float ConvertToFloat( object value ) { return (float) value; }
@@ -167,7 +167,7 @@ namespace RuntimeInspectorNamespace
 			public float MaxValue { get { return float.MaxValue; } }
 
 			public bool TryParse( string input, out object value ) { double parsedVal; bool result = double.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out parsedVal ); value = parsedVal; return result; }
-			public bool ValuesAreEqual( object value1, object value2 ) { return (double) value1 == (double) value2; }
+			public bool ValuesAreEqual( object value1, object value2 ) { return RuntimeInspectorUtils.ApproxEqual( (double) value1, (double) value2 ); }
 
 			public object ConvertFromFloat( float value ) { return (double) value; }
 			public float ConvertToFloat( object value ) { return (float) (double) value; }
