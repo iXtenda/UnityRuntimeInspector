@@ -32,7 +32,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (int) value; }
 			public float ConvertToFloat( object value ) { return (int) value; }
 
-			public string ToString( object value ) { return ( (int) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (int) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class UIntHandler : INumberHandler
@@ -46,7 +46,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (uint) value; }
 			public float ConvertToFloat( object value ) { return (uint) value; }
 
-			public string ToString( object value ) { return ( (uint) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (uint) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class LongHandler : INumberHandler
@@ -60,7 +60,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (long) value; }
 			public float ConvertToFloat( object value ) { return (long) value; }
 
-			public string ToString( object value ) { return ( (long) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (long) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class ULongHandler : INumberHandler
@@ -74,7 +74,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (ulong) value; }
 			public float ConvertToFloat( object value ) { return (ulong) value; }
 
-			public string ToString( object value ) { return ( (ulong) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (ulong) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class ByteHandler : INumberHandler
@@ -88,7 +88,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (byte) value; }
 			public float ConvertToFloat( object value ) { return (byte) value; }
 
-			public string ToString( object value ) { return ( (byte) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (byte) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class SByteHandler : INumberHandler
@@ -102,7 +102,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (sbyte) value; }
 			public float ConvertToFloat( object value ) { return (sbyte) value; }
 
-			public string ToString( object value ) { return ( (sbyte) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (sbyte) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class ShortHandler : INumberHandler
@@ -116,7 +116,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (short) value; }
 			public float ConvertToFloat( object value ) { return (short) value; }
 
-			public string ToString( object value ) { return ( (short) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (short) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class UShortHandler : INumberHandler
@@ -130,7 +130,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (ushort) value; }
 			public float ConvertToFloat( object value ) { return (ushort) value; }
 
-			public string ToString( object value ) { return ( (ushort) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (ushort) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class CharHandler : INumberHandler
@@ -153,12 +153,12 @@ namespace RuntimeInspectorNamespace
 			public float MaxValue { get { return float.MaxValue; } }
 
 			public bool TryParse( string input, out object value ) { float parsedVal; bool result = float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out parsedVal ); value = parsedVal; return result; }
-			public bool ValuesAreEqual( object value1, object value2 ) { return (float) value1 == (float) value2; }
+			public bool ValuesAreEqual( object value1, object value2 ) { return RuntimeInspectorUtils.ApproxEqual( (float) value1, (float) value2 ); }
 
 			public object ConvertFromFloat( float value ) { return value; }
 			public float ConvertToFloat( object value ) { return (float) value; }
 
-			public string ToString( object value ) { return ( (float) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (float) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class DoubleHandler : INumberHandler
@@ -167,12 +167,12 @@ namespace RuntimeInspectorNamespace
 			public float MaxValue { get { return float.MaxValue; } }
 
 			public bool TryParse( string input, out object value ) { double parsedVal; bool result = double.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out parsedVal ); value = parsedVal; return result; }
-			public bool ValuesAreEqual( object value1, object value2 ) { return (double) value1 == (double) value2; }
+			public bool ValuesAreEqual( object value1, object value2 ) { return RuntimeInspectorUtils.ApproxEqual( (double) value1, (double) value2 ); }
 
 			public object ConvertFromFloat( float value ) { return (double) value; }
 			public float ConvertToFloat( object value ) { return (float) (double) value; }
 
-			public string ToString( object value ) { return ( (double) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (double) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 
 		private class DecimalHandler : INumberHandler
@@ -186,7 +186,7 @@ namespace RuntimeInspectorNamespace
 			public object ConvertFromFloat( float value ) { return (decimal) value; }
 			public float ConvertToFloat( object value ) { return (float) (decimal) value; }
 
-			public string ToString( object value ) { return ( (decimal) value ).ToString( RuntimeInspectorUtils.numberFormat ); }
+			public string ToString( object value ) { return ( (decimal) value ).ToString( "N", RuntimeInspectorUtils.numberFormat ); }
 		}
 		#endregion
 

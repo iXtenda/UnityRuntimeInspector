@@ -169,7 +169,7 @@ namespace RuntimeInspectorNamespace
 		{
 			inputField.textComponent.enabled = !value;
 			if( multiValuesText )
-				multiValuesText.enabled = value;
+				multiValuesText.gameObject.SetActive( value );
 		}
 	}
 }

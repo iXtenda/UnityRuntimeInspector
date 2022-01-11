@@ -68,7 +68,7 @@ namespace RuntimeInspectorNamespace
 		private static Tooltip tooltipPopup;
 		private static readonly Stack<DraggedReferenceItem> draggedReferenceItemsPool = new Stack<DraggedReferenceItem>();
 
-		internal static readonly NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance( CultureInfo.InvariantCulture );
+		public static NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance( CultureInfo.InvariantCulture );
 		internal static readonly StringBuilder stringBuilder = new StringBuilder( 200 );
 
 		public static bool IsNull( this object obj )
@@ -78,6 +78,13 @@ namespace RuntimeInspectorNamespace
 
 			return obj == null;
 		}
+
+		public const float FLOAT_EQUAL_ERROR = 0.0001f;
+		public static bool ApproxEqual(this float a, float b)
+			=> Math.Abs( a - b ) < FLOAT_EQUAL_ERROR;
+
+		public static bool ApproxEqual(this double a, double b)
+			=> Math.Abs( a - b ) < FLOAT_EQUAL_ERROR;
 
 		// Checks if all the objects inside the IList are null
 		public static bool IsEmpty<T>( this IList<T> objects )
@@ -1044,7 +1051,7 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		public static void SetEach<TTarget, TValue>( this InspectorField parent, Action<TTarget, TValue> setter, TValue value )
+		public static void SetEach<TTarget, TValue>( this InspectorField parent, Action<TTarget, TValue> setter, object value )
 		{
 			if( parent.HasMultipleValues )
 			{
@@ -1061,13 +1068,13 @@ namespace RuntimeInspectorNamespace
 				else
 				{
 					foreach( var i in (IEnumerable) parent.Value )
-						setter( (TTarget) i, value );
+						setter( (TTarget) i, (TValue) value );
 				}
 
 				return;
 			}
 
-			setter( (TTarget) parent.Value, value );
+			setter( (TTarget) parent.Value, (TValue) value );
 		}
 	}
 }

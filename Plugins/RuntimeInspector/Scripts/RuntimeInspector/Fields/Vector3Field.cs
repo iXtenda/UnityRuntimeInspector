@@ -207,7 +207,7 @@ namespace RuntimeInspectorNamespace
 					{
 						float? coord = coords[i];
 						if( coord.HasValue )
-							if( coord.Value != v[i] )
+							if( !RuntimeInspectorUtils.ApproxEqual( coord.Value, v[i] ) )
 								coords[i] = null;
 					}
 				}
@@ -224,11 +224,11 @@ namespace RuntimeInspectorNamespace
 			inputZ.HasMultipleValues = !coords[2].HasValue;
 
 			if( coords[0].HasValue )
-				inputX.Text = coords[0].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputX.Text = coords[0].Value.ToString( "N", RuntimeInspectorUtils.numberFormat );
 			if( coords[1].HasValue )
-				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputY.Text = coords[1].Value.ToString( "N", RuntimeInspectorUtils.numberFormat );
 			if( coords[2].HasValue )
-				inputZ.Text = coords[2].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputZ.Text = coords[2].Value.ToString( "N", RuntimeInspectorUtils.numberFormat );
 		}
 
 		private bool OnValueSubmitted( string input, int coordinate )
