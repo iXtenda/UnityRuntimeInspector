@@ -41,10 +41,13 @@ namespace RuntimeInspectorNamespace
 		{
 			base.OnBound( variable );
 
-			if( BoundVariableType == typeof( float ) || BoundVariableType == typeof( double ) || BoundVariableType == typeof( decimal ) )
-				input.BackingField.contentType = TMP_InputField.ContentType.DecimalNumber;
-			else
-				input.BackingField.contentType = TMP_InputField.ContentType.IntegerNumber;
+			if( input.BackingField.contentType != TMP_InputField.ContentType.Custom )
+			{
+				if( BoundVariableType == typeof( float ) || BoundVariableType == typeof( double ) || BoundVariableType == typeof( decimal ) )
+					input.BackingField.contentType = TMP_InputField.ContentType.DecimalNumber;
+				else
+					input.BackingField.contentType = TMP_InputField.ContentType.IntegerNumber;
+			}
 
 			numberHandler = NumberHandlers.Get( BoundVariableType );
 			UpdateInput();
