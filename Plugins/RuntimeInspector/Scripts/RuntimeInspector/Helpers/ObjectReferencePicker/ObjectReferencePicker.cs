@@ -19,6 +19,7 @@ namespace RuntimeInspectorNamespace
 				{
 					m_instance = Instantiate( Resources.Load<ObjectReferencePicker>( "RuntimeInspector/ObjectReferencePicker" ) );
 					m_instance.gameObject.SetActive( false );
+					hasBeenSpawned = true;
 
 					RuntimeInspectorUtils.IgnoredTransformsInHierarchy.Add( m_instance.transform );
 				}
@@ -26,6 +27,7 @@ namespace RuntimeInspectorNamespace
 				return m_instance;
 			}
 		}
+		public static bool hasBeenSpawned;
 
 		public delegate void ReferenceCallback( object reference );
 		private ReferenceCallback onReferenceChanged, onSelectionConfirmed;

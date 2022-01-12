@@ -584,8 +584,12 @@ namespace RuntimeInspectorNamespace
 			m_inspectedObject = null;
 			scrollView.verticalNormalizedPosition = 1f;
 
-			ColorPicker.Instance.Close();
-			ObjectReferencePicker.Instance.Close();
+			// HasBeenSpawned prevents that we call Resources.Load() only
+			// to close a never needed picker again
+			if( ColorPicker.hasBeenSpawned )
+				ColorPicker.Instance.Close();
+			if( ObjectReferencePicker.hasBeenSpawned )
+				ObjectReferencePicker.Instance.Close();
 		}
 
 		public InspectorField CreateDrawerForType( Type type, Transform drawerParent, int depth, bool drawObjectsAsFields = true, MemberInfo variable = null )

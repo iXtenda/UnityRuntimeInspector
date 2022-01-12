@@ -16,6 +16,7 @@ namespace RuntimeInspectorNamespace
 				{
 					m_instance = Instantiate( Resources.Load<ColorPicker>( "RuntimeInspector/ColorPicker" ) );
 					m_instance.gameObject.SetActive( false );
+					ColorPicker.hasBeenSpawned = true;
 
 					RuntimeInspectorUtils.IgnoredTransformsInHierarchy.Add( m_instance.transform );
 				}
@@ -23,6 +24,7 @@ namespace RuntimeInspectorNamespace
 				return m_instance;
 			}
 		}
+		public static bool hasBeenSpawned;
 
 #pragma warning disable 0649
 		[SerializeField]
