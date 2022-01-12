@@ -68,7 +68,7 @@ namespace RuntimeInspectorNamespace
 		private static Tooltip tooltipPopup;
 		private static readonly Stack<DraggedReferenceItem> draggedReferenceItemsPool = new Stack<DraggedReferenceItem>();
 
-		public static NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance( CultureInfo.InvariantCulture );
+		internal static readonly NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance( CultureInfo.InvariantCulture );
 		internal static readonly StringBuilder stringBuilder = new StringBuilder( 200 );
 
 		public static bool IsNull( this object obj )

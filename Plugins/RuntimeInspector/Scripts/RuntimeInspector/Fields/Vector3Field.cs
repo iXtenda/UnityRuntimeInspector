@@ -33,6 +33,9 @@ namespace RuntimeInspectorNamespace
 		private bool isVector3Int;
 #endif
 
+		public IFormatProvider provider = RuntimeInspectorUtils.numberFormat;
+		public string format = NumberField.DEFAULT_FORMAT;
+
 		public override void Initialize()
 		{
 			base.Initialize();
@@ -82,7 +85,7 @@ namespace RuntimeInspectorNamespace
 
 		private bool OnIntChanged( string input, int coordinate )
 		{
-			if( !int.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out int value ) )
+			if( !int.TryParse( input, NumberStyles.Float, provider, out int value ) )
 				return false;
 
 			if( Value is MultiValue multiValue )
@@ -108,7 +111,7 @@ namespace RuntimeInspectorNamespace
 
 		private bool OnFloatChanged( string input, int coordinate )
 		{
-			if( !float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out float value ) )
+			if( !float.TryParse( input, NumberStyles.Float, provider, out float value ) )
 				return false;
 
 			if( Value is MultiValue multiValue )
@@ -179,11 +182,11 @@ namespace RuntimeInspectorNamespace
 			inputZ.HasMultipleValues = !coords[2].HasValue;
 
 			if( coords[0].HasValue )
-				inputX.Text = coords[0].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputX.Text = coords[0].Value.ToString( provider );
 			if( coords[1].HasValue )
-				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputY.Text = coords[1].Value.ToString( provider );
 			if( coords[2].HasValue )
-				inputZ.Text = coords[2].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputZ.Text = coords[2].Value.ToString( provider );
 		}
 
 		private void UpdateInputsFromFloat()
@@ -224,11 +227,11 @@ namespace RuntimeInspectorNamespace
 			inputZ.HasMultipleValues = !coords[2].HasValue;
 
 			if( coords[0].HasValue )
-				inputX.Text = coords[0].Value.ToString( "N", RuntimeInspectorUtils.numberFormat );
+				inputX.Text = coords[0].Value.ToString( "0.##", provider );
 			if( coords[1].HasValue )
-				inputY.Text = coords[1].Value.ToString( "N", RuntimeInspectorUtils.numberFormat );
+				inputY.Text = coords[1].Value.ToString( "0.##", provider );
 			if( coords[2].HasValue )
-				inputZ.Text = coords[2].Value.ToString( "N", RuntimeInspectorUtils.numberFormat );
+				inputZ.Text = coords[2].Value.ToString( "0.##", provider );
 		}
 
 		private bool OnValueSubmitted( string input, int coordinate )

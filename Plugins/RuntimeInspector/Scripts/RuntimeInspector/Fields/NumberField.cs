@@ -22,6 +22,9 @@ namespace RuntimeInspectorNamespace
 #pragma warning restore 0649
 
 		protected INumberHandler numberHandler;
+		public IFormatProvider provider = RuntimeInspectorUtils.numberFormat;
+		public const string DEFAULT_FORMAT = "0.######";
+		public string format = DEFAULT_FORMAT;
 
 		public override void Initialize()
 		{
@@ -116,7 +119,7 @@ namespace RuntimeInspectorNamespace
 				first = Value;
 
 			input.HasMultipleValues = false;
-			input.Text = numberHandler.ToString( first );
+			input.Text = numberHandler.ToString( first, format, provider );
 		}
 
 		protected override void OnIsInteractableChanged()
