@@ -11,22 +11,22 @@ namespace RuntimeInspectorNamespace
 	{
 #pragma warning disable 0649
 		[SerializeField]
-		private BoundInputField inputX;
+		protected BoundInputField inputX;
 
 		[SerializeField]
-		private BoundInputField inputY;
+		protected BoundInputField inputY;
 
 		[SerializeField]
-		private BoundInputField inputZ;
+		protected BoundInputField inputZ;
 
 		[SerializeField]
-		private Text labelX;
+		protected Text labelX;
 
 		[SerializeField]
-		private Text labelY;
+		protected Text labelY;
 
 		[SerializeField]
-		private Text labelZ;
+		protected Text labelZ;
 #pragma warning restore 0649
 
 #if UNITY_2017_2_OR_NEWER
@@ -227,11 +227,11 @@ namespace RuntimeInspectorNamespace
 			inputZ.HasMultipleValues = !coords[2].HasValue;
 
 			if( coords[0].HasValue )
-				inputX.Text = coords[0].Value.ToString( "0.##", provider );
+				inputX.Text = coords[0].Value.ToString( format, provider );
 			if( coords[1].HasValue )
-				inputY.Text = coords[1].Value.ToString( "0.##", provider );
+				inputY.Text = coords[1].Value.ToString( format, provider );
 			if( coords[2].HasValue )
-				inputZ.Text = coords[2].Value.ToString( "0.##", provider );
+				inputZ.Text = coords[2].Value.ToString( format, provider );
 		}
 
 		private bool OnValueSubmitted( string input, int coordinate )
