@@ -1452,7 +1452,7 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		private void OnSearchTermChanged( string search )
+		protected virtual void OnSearchTermChanged( string search )
 		{
 			if( search != null )
 				search = search.Trim();
