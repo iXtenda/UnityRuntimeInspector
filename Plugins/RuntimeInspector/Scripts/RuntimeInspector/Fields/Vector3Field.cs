@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
+using Mode = RuntimeInspectorNamespace.StringField.Mode;
 
 namespace RuntimeInspectorNamespace
 {
@@ -32,6 +33,19 @@ namespace RuntimeInspectorNamespace
 #if UNITY_2017_2_OR_NEWER
 		private bool isVector3Int;
 #endif
+
+		private Mode m_setterMode = Mode.OnValueChange;
+		public Mode SetterMode
+		{
+			get { return m_setterMode; }
+			set
+			{
+				m_setterMode = value;
+				inputX.CacheTextOnValueChange = value == Mode.OnValueChange;
+				inputY.CacheTextOnValueChange = value == Mode.OnValueChange;
+				inputZ.CacheTextOnValueChange = value == Mode.OnValueChange;
+			}
+		}
 
 		public IFormatProvider provider = RuntimeInspectorUtils.numberFormat;
 		public string format = NumberField.DEFAULT_FORMAT;
@@ -74,8 +88,17 @@ namespace RuntimeInspectorNamespace
 			UpdateInputs();
 		}
 
+		protected override void OnUnbound()
+		{
+			base.OnUnbound();
+			SetterMode = Mode.OnValueChange;
+		}
+
 		private bool OnValueChanged( string input, int coordinate )
 		{
+			if( m_setterMode != Mode.OnValueChange )
+				return false;
+
 #if UNITY_2017_2_OR_NEWER
 			if( isVector3Int )
 				return OnIntChanged( input, coordinate );
@@ -236,8 +259,15 @@ namespace RuntimeInspectorNamespace
 
 		private bool OnValueSubmitted( string input, int coordinate )
 		{
+			if( m_setterMode != Mode.OnSubmit )
+				return false;
+
 			Inspector.RefreshDelayed();
-			return OnValueChanged( input, coordinate );
+#if UNITY_2017_2_OR_NEWER
+			if( isVector3Int )
+				return OnIntChanged( input, coordinate );
+#endif
+			return OnFloatChanged( input, coordinate );
 		}
 
 		protected override void OnSkinChanged()
