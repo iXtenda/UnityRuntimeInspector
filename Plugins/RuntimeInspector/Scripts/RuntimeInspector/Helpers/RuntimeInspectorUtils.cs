@@ -1031,12 +1031,12 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		public static object GetUnique<TTarget, TValue>(this InspectorField parent, Func<TTarget, TValue> getter )
+		public static object Broadcast<TTarget, TValue>(this InspectorField parent, Func<TTarget, TValue> getter )
 		{
 			if( !parent.HasMultipleValues )
 				return getter( (TTarget) parent.Value );
 
-			var values = new HashSet<TValue>();
+			var values = new List<TValue>();
 			foreach( var i in (IEnumerable) parent.Value )
 				values.Add( getter( (TTarget) i ) );
 
@@ -1058,10 +1058,10 @@ namespace RuntimeInspectorNamespace
 				if( value is MultiValue multiValue )
 				{
 					var valueEnumerator = multiValue.GetEnumerator();
-
 					foreach( var i in (IEnumerable) parent.Value )
 					{
-						valueEnumerator.MoveNext();
+						if( !valueEnumerator.MoveNext() )
+							break;
 						setter( (TTarget) i, (TValue) valueEnumerator.Current );
 					}
 				}

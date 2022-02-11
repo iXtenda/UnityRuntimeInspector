@@ -223,7 +223,7 @@ namespace RuntimeInspectorNamespace
 			BindTo(
 				typeof( T ),
 				variableName,
-				() => parent.GetUnique( getter ),
+				() => parent.Broadcast( getter ),
 				value => parent.SetEach( setter, value ),
 				variable);
 		}
@@ -239,7 +239,7 @@ namespace RuntimeInspectorNamespace
 			BindTo(
 				variableType,
 				variableName,
-				() => parent.GetUnique( getter ),
+				() => parent.Broadcast( getter ),
 				value => parent.SetEach( setter, value ),
 				variable);
 		}
@@ -673,7 +673,7 @@ namespace RuntimeInspectorNamespace
 			return CreateDrawer(
 				typeof( T ),
 				variableName,
-				() => this.GetUnique( getter ),
+				() => this.Broadcast( getter ),
 				value => this.SetEach( setter, value ),
 				drawObjectsAsFields);
 		}
