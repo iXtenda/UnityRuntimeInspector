@@ -552,8 +552,10 @@ namespace RuntimeInspectorNamespace
 					if( !go && m_inspectedObject as Component )
 						go = ( (Component) m_inspectedObject ).gameObject;
 
-					if( ConnectedHierarchy && go && !ConnectedHierarchy.Select( go.transform, RuntimeHierarchy.SelectOptions.FocusOnSelection ) )
-						ConnectedHierarchy.Deselect();
+					// Commented this because we don't want the hierarchy to deselect everything
+					// when we inspect something that the hierarchy doesn't know about
+					//if( ConnectedHierarchy && go && !ConnectedHierarchy.Select( go.transform, RuntimeHierarchy.SelectOptions.FocusOnSelection ) )
+					//	ConnectedHierarchy.Deselect();
 				}
 				else
 					m_inspectedObject = null;
