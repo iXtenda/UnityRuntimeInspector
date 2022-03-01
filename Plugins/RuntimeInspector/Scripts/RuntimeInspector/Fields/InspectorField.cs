@@ -86,7 +86,8 @@ namespace RuntimeInspectorNamespace
 			{
 				// try { setter( value ); m_value = value; }
 				// catch { }
-				setter( value ); m_value = value;
+				setter( value );
+				m_value = value;
 			}
 		}
 
@@ -668,14 +669,16 @@ namespace RuntimeInspectorNamespace
 			string variableName,
 			Func<U, T> getter,
 			Action<U, T> setter,
+			MemberInfo variable = null,
 			bool drawObjectsAsFields = true)
 		{
 			return CreateDrawer(
-				typeof( T ),
-				variableName,
-				() => this.Broadcast( getter ),
-				value => this.SetEach( setter, value ),
-				drawObjectsAsFields);
+				variableType: typeof( T ),
+				variableName: variableName,
+				getter: () => this.Broadcast( getter ),
+				setter: value => this.SetEach( setter, value ),
+				variable: variable,
+				drawObjectsAsFields: drawObjectsAsFields);
 		}
 
 		public InspectorField CreateDrawer(
@@ -683,12 +686,24 @@ namespace RuntimeInspectorNamespace
 			string variableName,
 			Getter getter,
 			Setter setter,
+			MemberInfo variable = null,
 			bool drawObjectsAsFields = true)
 		{
-			InspectorField variableDrawer = Inspector.CreateDrawerForType( variableType, drawArea, Depth + 1, drawObjectsAsFields );
+			InspectorField variableDrawer = Inspector.CreateDrawerForType(
+				type: variableType,
+				drawerParent: drawArea,
+				depth: Depth + 1,
+				drawObjectsAsFields: drawObjectsAsFields,
+				variable: variable);
+
 			if( variableDrawer != null )
 			{
-				variableDrawer.BindTo( variableType, variableName == null ? null : string.Empty, getter, setter );
+				variableDrawer.BindTo(
+					variableType: variableType,
+					variableName: variableName == null ? null : string.Empty,
+					getter: getter,
+					setter: setter,
+					variable: variable);
 				variableDrawer.IsInteractable = IsInteractable;
 				if( variableName != null )
 					variableDrawer.NameRaw = variableName;
