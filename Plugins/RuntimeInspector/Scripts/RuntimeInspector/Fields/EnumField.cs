@@ -35,6 +35,9 @@ namespace RuntimeInspectorNamespace
 
 		[SerializeField]
 		private Dropdown input;
+
+		[SerializeField]
+		private Text multiValueText;
 #pragma warning restore 0649
 
 		private static readonly Dictionary<Type, List<string>> enumNames = new Dictionary<Type, List<string>>();
@@ -146,6 +149,7 @@ namespace RuntimeInspectorNamespace
 
 			input.captionText.SetSkinInputFieldText( Skin );
 			templateText.SetSkinInputFieldText( Skin );
+			multiValueText.SetSkinInputFieldText( Skin );
 
 			templateBackground.color = Skin.InputFieldNormalBackgroundColor.Tint( 0.075f );
 			templateCheckmark.color = Skin.ToggleCheckmarkColor;
@@ -158,10 +162,19 @@ namespace RuntimeInspectorNamespace
 		public override void Refresh()
 		{
 			base.Refresh();
+			if( !HasMultipleValues )
+			{
+				int valueIndex = currEnumValues.IndexOf( Value );
+				if( valueIndex != -1 && input.value != valueIndex )
+					input.value = valueIndex;
+			}
+			UpdateMultiValueText( HasMultipleValues );
+		}
 
-			int valueIndex = currEnumValues.IndexOf( Value );
-			if( valueIndex != -1 && input.value != valueIndex )
-				input.value = valueIndex;
+		private void UpdateMultiValueText( bool hasMultipleValues )
+		{
+			multiValueText.enabled = hasMultipleValues;
+			input.captionText.enabled = !hasMultipleValues;
 		}
 
 		protected override void OnIsInteractableChanged()
