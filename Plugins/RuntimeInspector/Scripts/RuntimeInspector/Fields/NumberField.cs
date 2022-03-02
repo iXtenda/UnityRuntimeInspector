@@ -4,6 +4,7 @@ using System.Reflection;
 using UnityEngine;
 using TMPro;
 using System.Collections;
+using Mode = RuntimeInspectorNamespace.StringField.Mode;
 
 namespace RuntimeInspectorNamespace
 {
@@ -20,6 +21,17 @@ namespace RuntimeInspectorNamespace
 		[SerializeField]
 		protected BoundInputField input;
 #pragma warning restore 0649
+
+		private Mode m_setterMode = Mode.OnValueChange;
+		public Mode SetterMode
+		{
+			get { return m_setterMode; }
+			set
+			{
+				m_setterMode = value;
+				input.CacheTextOnValueChange = m_setterMode == Mode.OnValueChange;
+			}
+		}
 
 		protected INumberHandler numberHandler;
 		public IFormatProvider provider = RuntimeInspectorUtils.numberFormat;
@@ -57,7 +69,28 @@ namespace RuntimeInspectorNamespace
 			UpdateInput();
 		}
 
+		protected override void OnUnbound()
+		{
+			base.OnUnbound();
+			SetterMode = default;
+		}
+
 		protected virtual bool OnValueChanged( BoundInputField source, string input )
+		{
+			if( m_setterMode != Mode.OnValueChange )
+				return false;
+			return ApplyValue( input );
+		}
+
+		private bool OnValueSubmitted( BoundInputField source, string input )
+		{
+			if( m_setterMode != Mode.OnSubmit )
+				return false;
+			Inspector.RefreshDelayed();
+			return ApplyValue( input );
+		}
+
+		private bool ApplyValue( string input )
 		{
 			object value;
 			if( numberHandler.TryParse( input, out value ) )
@@ -67,12 +100,6 @@ namespace RuntimeInspectorNamespace
 			}
 
 			return false;
-		}
-
-		private bool OnValueSubmitted( BoundInputField source, string input )
-		{
-			Inspector.RefreshDelayed();
-			return OnValueChanged( source, input );
 		}
 
 		protected override void OnSkinChanged()
