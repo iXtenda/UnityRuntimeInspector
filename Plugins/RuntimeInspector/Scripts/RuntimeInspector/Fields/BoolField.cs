@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -38,6 +39,13 @@ namespace RuntimeInspectorNamespace
 			Inspector.RefreshDelayed();
 		}
 
+		protected override void OnBound( MemberInfo variable )
+		{
+			base.OnBound( variable );
+			if( !HasMultipleValues )
+				input.SetIsOnWithoutNotify( (bool) Value );
+		}
+
 		protected override void OnSkinChanged()
 		{
 			base.OnSkinChanged();
@@ -62,7 +70,8 @@ namespace RuntimeInspectorNamespace
 			base.Refresh();
 			if( Value is bool b )
 			{
-				input.isOn = b;
+				if( input.isOn != b )
+					input.isOn = b;
 				SwitchMarks( false );
 			}
 			else

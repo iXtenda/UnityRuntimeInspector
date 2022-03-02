@@ -87,6 +87,9 @@ namespace RuntimeInspectorNamespace
 
 			input.ClearOptions();
 			input.AddOptions( currEnumNames );
+
+			int valueIndex = currEnumValues.IndexOf( Value );
+			input.SetValueWithoutNotify( valueIndex );
 		}
 
 		protected override void OnInspectorChanged()
@@ -157,7 +160,7 @@ namespace RuntimeInspectorNamespace
 			base.Refresh();
 
 			int valueIndex = currEnumValues.IndexOf( Value );
-			if( valueIndex != -1 )
+			if( valueIndex != -1 && input.value != valueIndex )
 				input.value = valueIndex;
 		}
 
