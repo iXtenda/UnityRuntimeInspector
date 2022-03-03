@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -34,7 +35,7 @@ namespace RuntimeInspectorNamespace
 		private Text templateText;
 
 		[SerializeField]
-		private Dropdown input;
+		private TMP_Dropdown input;
 
 		[SerializeField]
 		private Text multiValueText;
