@@ -290,7 +290,7 @@ namespace RuntimeInspectorNamespace
 					if( m_currentSelection == null )
 						return;
 
-					var toInspect = new HashSet<object>();
+					var toInspect = new List<GameObject>();
 					foreach( var s in m_currentSelection )
 						toInspect.Add( s.gameObject );
 					m_connectedInspector.Inspect( toInspect );

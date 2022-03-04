@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
+using Mode = RuntimeInspectorNamespace.StringField.Mode;
 
 namespace RuntimeInspectorNamespace
 {
@@ -11,13 +12,13 @@ namespace RuntimeInspectorNamespace
 	{
 #pragma warning disable 0649
 		[SerializeField]
-		private BoundInputField inputX;
+		protected BoundInputField inputX;
 
 		[SerializeField]
-		private BoundInputField inputY;
+		protected BoundInputField inputY;
 
 		[SerializeField]
-		private BoundInputField inputZ;
+		protected BoundInputField inputZ;
 
 		[SerializeField]
 		private Text labelX;
@@ -33,6 +34,22 @@ namespace RuntimeInspectorNamespace
 		private bool isVector3Int;
 #endif
 
+		private Mode m_setterMode = Mode.OnValueChange;
+		public Mode SetterMode
+		{
+			get { return m_setterMode; }
+			set
+			{
+				m_setterMode = value;
+				inputX.CacheTextOnValueChange = value == Mode.OnValueChange;
+				inputY.CacheTextOnValueChange = value == Mode.OnValueChange;
+				inputZ.CacheTextOnValueChange = value == Mode.OnValueChange;
+			}
+		}
+
+		public IFormatProvider provider = RuntimeInspectorUtils.numberFormat;
+		public string format = NumberField.DEFAULT_FORMAT;
+
 		public override void Initialize()
 		{
 			base.Initialize();
@@ -41,9 +58,9 @@ namespace RuntimeInspectorNamespace
 			inputY.Initialize();
 			inputZ.Initialize();
 
-			inputX.OnValueChanged += OnValueChanged;
-			inputY.OnValueChanged += OnValueChanged;
-			inputZ.OnValueChanged += OnValueChanged;
+			inputX.OnValueChanged += OnValueEdited;
+			inputY.OnValueChanged += OnValueEdited;
+			inputZ.OnValueChanged += OnValueEdited;
 
 			inputX.OnValueSubmitted += OnValueSubmitted;
 			inputY.OnValueSubmitted += OnValueSubmitted;
@@ -73,6 +90,12 @@ namespace RuntimeInspectorNamespace
 			UpdateInputs();
 		}
 
+		protected override void OnUnbound()
+		{
+			base.OnUnbound();
+			SetterMode = Mode.OnValueChange;
+		}
+
 		private void UpdateInputs()
 		{
 			float?[] coords = BoundValues
@@ -94,11 +117,35 @@ namespace RuntimeInspectorNamespace
 		private void UpdateInputTexts<T>( IList<T?> coords ) where T : struct, IConvertible
 		{
 			if( coords[0].HasValue )
-				inputX.Text = coords[0].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputX.Text = coords[0].Value.ToString( provider );
 			if( coords[1].HasValue )
-				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputY.Text = coords[1].Value.ToString( provider );
 			if( coords[2].HasValue )
-				inputZ.Text = coords[2].Value.ToString( RuntimeInspectorUtils.numberFormat );
+				inputZ.Text = coords[2].Value.ToString( provider );
+		}
+
+		private void UpdateInputTexts( IList<float?> coords )
+		{
+			if( coords[0].HasValue )
+				inputX.Text = coords[0].Value.ToString( format, provider );
+			if( coords[1].HasValue )
+				inputY.Text = coords[1].Value.ToString( format, provider );
+			if( coords[2].HasValue )
+				inputZ.Text = coords[2].Value.ToString( format, provider );
+		}
+
+		private bool OnValueEdited( BoundInputField source, string input )
+		{
+			if( m_setterMode != Mode.OnValueChange )
+				return false;
+			return OnValueChanged( source, input );
+		}
+
+		private bool OnValueSubmitted( BoundInputField source, string input )
+		{
+			if( m_setterMode != Mode.OnSubmit )
+				return false;
+			return OnValueChanged( source, input );
 		}
 
 		private bool OnValueChanged( BoundInputField source, string input )
@@ -138,12 +185,6 @@ namespace RuntimeInspectorNamespace
 
 			BoundValues = newVs.AsReadOnly();
 			return true;
-		}
-
-		private bool OnValueSubmitted( BoundInputField source, string input )
-		{
-			Inspector.RefreshDelayed();
-			return OnValueChanged( source, input );
 		}
 
 		protected override void OnSkinChanged()

@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using Mode = RuntimeInspectorNamespace.StringField.Mode;
 
 namespace RuntimeInspectorNamespace
 {
-	public class NumberField : InspectorField<IConvertible>
+    public class NumberField : InspectorField<IConvertible>
 	{
 		private static readonly HashSet<Type> supportedTypes = new HashSet<Type>()
 		{
@@ -20,14 +21,28 @@ namespace RuntimeInspectorNamespace
 		protected BoundInputField input;
 #pragma warning restore 0649
 
+		private Mode m_setterMode = Mode.OnValueChange;
+		public Mode SetterMode
+		{
+			get { return m_setterMode; }
+			set
+			{
+				m_setterMode = value;
+				input.CacheTextOnValueChange = m_setterMode == Mode.OnValueChange;
+			}
+		}
+
 		protected INumberHandler numberHandler;
+		public IFormatProvider provider = RuntimeInspectorUtils.numberFormat;
+		public const string DEFAULT_FORMAT = "0.######";
+		public string format = DEFAULT_FORMAT;
 
 		public override void Initialize()
 		{
 			base.Initialize();
 
 			input.Initialize();
-			input.OnValueChanged += OnValueChanged;
+			input.OnValueChanged += OnValueEdited;
 			input.OnValueSubmitted += OnValueSubmitted;
 			input.DefaultEmptyValue = "0";
 		}
@@ -42,12 +57,33 @@ namespace RuntimeInspectorNamespace
 			base.OnBound( variable );
 
 			if( m_boundVariableType == typeof( float ) || m_boundVariableType == typeof( double ) || m_boundVariableType == typeof( decimal ) )
-				input.BackingField.contentType = InputField.ContentType.DecimalNumber;
+				input.BackingField.contentType = TMP_InputField.ContentType.DecimalNumber;
 			else
-				input.BackingField.contentType = InputField.ContentType.IntegerNumber;
+				input.BackingField.contentType = TMP_InputField.ContentType.IntegerNumber;
 
 			numberHandler = NumberHandlers.Get( m_boundVariableType );
 			UpdateInput();
+		}
+
+		protected override void OnUnbound()
+		{
+			base.OnUnbound();
+			SetterMode = default;
+		}
+
+		protected bool OnValueEdited( BoundInputField source, string input )
+		{
+			if( m_setterMode != Mode.OnValueChange )
+				return false;
+			return OnValueChanged( source, input );
+		}
+
+		private bool OnValueSubmitted( BoundInputField source, string input )
+		{
+			if( m_setterMode != Mode.OnSubmit )
+				return false;
+			Inspector.RefreshDelayed();
+			return OnValueChanged( source, input );
 		}
 
 		protected virtual bool OnValueChanged( BoundInputField source, string input )
@@ -59,12 +95,6 @@ namespace RuntimeInspectorNamespace
 				return true;
 			}
 			return false;
-		}
-
-		private bool OnValueSubmitted( BoundInputField source, string input )
-		{
-			Inspector.RefreshDelayed();
-			return OnValueChanged( source, input );
 		}
 
 		protected override void OnSkinChanged()
@@ -88,7 +118,7 @@ namespace RuntimeInspectorNamespace
 			IConvertible value;
 			if( BoundValues.GetSingle( out value ) )
 			{
-				input.Text = value.ToString( RuntimeInspectorUtils.numberFormat );
+				input.Text = numberHandler.ToString( value, format, provider );
 				input.HasMultipleValues = false;
 			}
 			else

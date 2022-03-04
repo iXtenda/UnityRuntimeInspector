@@ -13,6 +13,8 @@ namespace RuntimeInspectorNamespace
 
 		IConvertible ConvertFromFloat( float value );
 		float ConvertToFloat( IConvertible value );
+
+		string ToString( object value, string format, IFormatProvider provider );
 	}
 
 	public class NumberHandlers
@@ -27,6 +29,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (int) value; }
 			public float ConvertToFloat( IConvertible value ) { return (int) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (int) value ).ToString( format, provider ); }
 		}
 
 		private class UIntHandler : INumberHandler
@@ -38,6 +42,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (uint) value; }
 			public float ConvertToFloat( IConvertible value ) { return (uint) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (uint) value ).ToString( format, provider ); }
 		}
 
 		private class LongHandler : INumberHandler
@@ -49,6 +55,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (long) value; }
 			public float ConvertToFloat( IConvertible value ) { return (long) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (long) value ).ToString( format, provider ); }
 		}
 
 		private class ULongHandler : INumberHandler
@@ -60,6 +68,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (ulong) value; }
 			public float ConvertToFloat( IConvertible value ) { return (ulong) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (ulong) value ).ToString( format, provider ); }
 		}
 
 		private class ByteHandler : INumberHandler
@@ -71,6 +81,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (byte) value; }
 			public float ConvertToFloat( IConvertible value ) { return (byte) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (byte) value ).ToString( format, provider ); }
 		}
 
 		private class SByteHandler : INumberHandler
@@ -82,6 +94,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (sbyte) value; }
 			public float ConvertToFloat( IConvertible value ) { return (sbyte) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (sbyte) value ).ToString( format, provider ); }
 		}
 
 		private class ShortHandler : INumberHandler
@@ -93,6 +107,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (short) value; }
 			public float ConvertToFloat( IConvertible value ) { return (short) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (short) value ).ToString( format, provider ); }
 		}
 
 		private class UShortHandler : INumberHandler
@@ -104,6 +120,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (ushort) value; }
 			public float ConvertToFloat( IConvertible value ) { return (ushort) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (ushort) value ).ToString( format, provider ); }
 		}
 
 		private class CharHandler : INumberHandler
@@ -115,6 +133,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (char) value; }
 			public float ConvertToFloat( IConvertible value ) { return (char) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (char) value ).ToString( provider ); }
 		}
 
 		private class FloatHandler : INumberHandler
@@ -126,6 +146,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return value; }
 			public float ConvertToFloat( IConvertible value ) { return (float) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (float) value ).ToString( format, provider ); }
 		}
 
 		private class DoubleHandler : INumberHandler
@@ -137,6 +159,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (double) value; }
 			public float ConvertToFloat( IConvertible value ) { return (float) (double) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (double) value ).ToString( format, provider ); }
 		}
 
 		private class DecimalHandler : INumberHandler
@@ -148,6 +172,8 @@ namespace RuntimeInspectorNamespace
 
 			public IConvertible ConvertFromFloat( float value ) { return (decimal) value; }
 			public float ConvertToFloat( IConvertible value ) { return (float) (decimal) value; }
+
+			public string ToString( object value, string format, IFormatProvider provider ) { return ( (decimal) value ).ToString( format, provider ); }
 		}
 		#endregion
 

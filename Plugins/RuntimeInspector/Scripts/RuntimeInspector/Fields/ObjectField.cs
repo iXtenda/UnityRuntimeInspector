@@ -55,7 +55,7 @@ namespace RuntimeInspectorNamespace
 
 		protected override void GenerateElements()
 		{
-			if( BoundValues.All( x => x == null ) )
+			if( BoundValues.Each( x => x == null ) )
 			{
 				initializeObjectButton.gameObject.SetActive( CanInitializeNewObject() );
 				return;
@@ -63,7 +63,11 @@ namespace RuntimeInspectorNamespace
 
 			initializeObjectButton.gameObject.SetActive( false );
 
-			if( ( customEditor = RuntimeInspectorUtils.GetCustomEditor( m_boundVariableType ) ) != null )
+			// Use runtime type instead of static type
+			// Type type = m_boundVariableType;
+			Type type = BoundValues[0].GetType();
+
+			if( ( customEditor = RuntimeInspectorUtils.GetCustomEditor( type ) ) != null )
 				customEditor.GenerateElements( this );
 			else
 				CreateDrawersForVariables();

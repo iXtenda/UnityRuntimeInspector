@@ -172,7 +172,7 @@ namespace RuntimeInspectorNamespace
 			return source[0];
 		}
 
-		public static bool All<T>( this IEnumerable<T> source, Func<T, bool> func )
+		public static bool Each<T>( this IEnumerable<T> source, Func<T, bool> func )
 		{
 			foreach( T item in source )
 				if( !func( item ) )

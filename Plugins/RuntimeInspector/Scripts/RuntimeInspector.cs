@@ -522,6 +522,17 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
+		public void Regenerate()
+		{
+			var tmp = new GameObject[m_inspectedObjects.Count];
+			for (int i = 0; i < m_inspectedObjects.Count; i++)
+			{
+				tmp[i] = (GameObject) m_inspectedObjects[i];
+			}
+
+			Inspect( tmp );
+		}
+
 		public void StopInspect()
 		{
 			if( !m_isLocked )
@@ -542,8 +553,12 @@ namespace RuntimeInspectorNamespace
 			m_inspectedObjects = null;
 			scrollView.verticalNormalizedPosition = 1f;
 
-			ColorPicker.Instance.Close();
-			ObjectReferencePicker.Instance.Close();
+			// HasBeenSpawned prevents that we call Resources.Load() only
+			// to close a never needed picker again
+			if( ColorPicker.hasBeenSpawned )
+				ColorPicker.Instance.Close();
+			if( ObjectReferencePicker.hasBeenSpawned )
+				ObjectReferencePicker.Instance.Close();
 		}
 
 		public InspectorField CreateDrawerForType( Type type, Transform drawerParent, int depth, bool drawObjectsAsFields = true, MemberInfo variable = null )

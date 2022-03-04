@@ -480,7 +480,8 @@ namespace RuntimeInspectorNamespace
 					if( m_headerVisibility == RuntimeInspector.HeaderVisibility.Hidden )
 					{
 						Depth++;
-						layoutGroup.padding.top = Skin.LineHeight;
+						// layoutGroup.padding.top = Skin.LineHeight;
+						layoutGroup.padding.top = 0;
 						expandToggle.gameObject.SetActive( true );
 					}
 					else if( value == RuntimeInspector.HeaderVisibility.Hidden )
@@ -561,7 +562,8 @@ namespace RuntimeInspectorNamespace
 
 			if( m_headerVisibility != RuntimeInspector.HeaderVisibility.Hidden )
 			{
-				layoutGroup.padding.top = Skin.LineHeight;
+				//Remove auto padding
+				//layoutGroup.padding.top = Skin.LineHeight;
 
 				if( m_headerVisibility == RuntimeInspector.HeaderVisibility.Collapsible )
 					variableNameText.rectTransform.sizeDelta = new Vector2( -( Skin.ExpandArrowSpacing + Skin.LineHeight * 0.5f ), 0f );
@@ -570,8 +572,9 @@ namespace RuntimeInspectorNamespace
 			if( expandArrow != null )
 			{
 				expandArrow.color = Skin.ExpandArrowColor;
-				expandArrow.rectTransform.anchoredPosition = new Vector2( Skin.LineHeight * 0.25f, 0f );
-				expandArrow.rectTransform.sizeDelta = new Vector2( Skin.LineHeight * 0.5f, Skin.LineHeight * 0.5f );
+				//Remove sprite rescale
+				// expandArrow.rectTransform.anchoredPosition = new Vector2( Skin.LineHeight * 0.25f, 0f );
+				// expandArrow.rectTransform.sizeDelta = new Vector2( Skin.LineHeight * 0.5f, Skin.LineHeight * 0.5f );
 			}
 
 			for( int i = 0; i < elements.Count; i++ )
@@ -721,13 +724,37 @@ namespace RuntimeInspectorNamespace
 			return variableDrawer;
 		}
 
+		// Casting version helpful for IRuntimeInspectorCustomEditor's
+		public InspectorField CreateDrawer<T, TChild>(
+			string variableName,
+			Func<T, TChild> getter,
+			Action<T, TChild> setter,
+			MemberInfo variable = null,
+			bool drawObjectsAsFields = true) where T : TBinding
+		{
+			return CreateDrawer<TChild>(
+					variableType: typeof( TChild ),
+					variableName: variableName,
+					getter: x => getter( (T) x ),
+					setter: (x, v) => setter( (T) x, v ),
+					variable: variable,
+					drawObjectsAsFields: drawObjectsAsFields);
+		}
+
 		public InspectorField CreateDrawer<TChild>(
 			string variableName,
 			Func<TBinding, TChild> getter,
 			Action<TBinding, TChild> setter,
+			MemberInfo variable = null,
 			bool drawObjectsAsFields = true)
 		{
-			return CreateDrawer( typeof( TChild ), variableName, getter, setter, drawObjectsAsFields );
+			return CreateDrawer(
+					variableType: typeof( TChild ),
+					variableName: variableName,
+					getter: getter,
+					setter: setter,
+					variable: variable,
+					drawObjectsAsFields: drawObjectsAsFields);
 		}
 
 		// Overload that handles multi-selection automatically. You don't pass
@@ -739,28 +766,37 @@ namespace RuntimeInspectorNamespace
 			string variableName,
 			Func<TBinding, TChild> getter,
 			Action<TBinding, TChild> setter,
+			MemberInfo variable = null,
 			bool drawObjectsAsFields = true)
 		{
 			return CreateDrawer(
-				variableType,
-				variableName,
-				() => BoundValues.Select( getter ).AsReadOnly(),
-				newChildObjs =>
-				{
-					foreach( TBinding instance in BoundValues )
-						foreach( TChild value in newChildObjs )
-							setter( instance, value );
-				},
-				drawObjectsAsFields);
+					variableType: variableType,
+					variableName: variableName,
+					getter: () => BoundValues.Select( getter ).AsReadOnly(),
+					setter: newChildObjs =>
+					{
+						foreach( TBinding instance in BoundValues )
+							foreach( TChild value in newChildObjs )
+								setter( instance, value );
+					},
+					variable: variable,
+					drawObjectsAsFields: drawObjectsAsFields);
 		}
 
 		protected InspectorField CreateDrawer<TChild>(
 			string variableName,
 			Getter<TChild> getter,
 			Setter<TChild> setter,
+			MemberInfo variable = null,
 			bool drawObjectsAsFields = true)
 		{
-			return CreateDrawer( typeof( TChild ), variableName, getter, setter, drawObjectsAsFields );
+			return CreateDrawer(
+					variableType: typeof( TChild ),
+					variableName: variableName,
+					getter: getter,
+					setter: setter,
+					variable: variable,
+					drawObjectsAsFields: drawObjectsAsFields);
 		}
 
 		protected InspectorField CreateDrawer<TChild>(
@@ -768,9 +804,16 @@ namespace RuntimeInspectorNamespace
 			string variableName,
 			Getter<TChild> getter,
 			Setter<TChild> setter,
+			MemberInfo variable = null,
 			bool drawObjectsAsFields = true)
 		{
-			InspectorField drawer = Inspector.CreateDrawerForType( variableType, drawArea, Depth + 1, drawObjectsAsFields );
+			InspectorField drawer = Inspector.CreateDrawerForType(
+					type: variableType,
+					drawerParent: drawArea,
+					depth: Depth + 1,
+					drawObjectsAsFields: drawObjectsAsFields,
+					variable: variable);
+
 			if( drawer == null )
 				return null;
 
@@ -780,12 +823,18 @@ namespace RuntimeInspectorNamespace
 				drawer.NameRaw = variableName;
 
 			if( drawer is InspectorField<TChild> )
-				( (InspectorField<TChild>) drawer ).BindTo( variableType, variableName, getter, setter );
+				( (InspectorField<TChild>) drawer ).BindTo(
+						variableType: variableType,
+						variableName: variableName,
+						getter: getter,
+						setter: setter,
+						variable: variable);
 			else
 				// If there is no inspector field taking values of the correct type
 				// directly, we use the overload that casts.
-				drawer. BindTo( variableType, variableName, getter, setter );
+				drawer.BindTo( variableType, variableName, getter, setter, variable );
 
+			drawer.IsInteractable = IsInteractable;
 			elements.Add( drawer );
 			return drawer;
 		}
