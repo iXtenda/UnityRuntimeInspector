@@ -35,7 +35,7 @@ namespace RuntimeInspectorNamespace
 		private Text templateText;
 
 		[SerializeField]
-		private TMP_Dropdown input;
+		protected TMP_Dropdown input;
 
 		[SerializeField]
 		private Text multiValueText;
@@ -44,8 +44,8 @@ namespace RuntimeInspectorNamespace
 		private static readonly Dictionary<Type, List<string>> enumNames = new Dictionary<Type, List<string>>();
 		private static readonly Dictionary<Type, List<object>> enumValues = new Dictionary<Type, List<object>>();
 
-		private List<string> currEnumNames;
-		private List<object> currEnumValues;
+		protected List<string> currEnumNames;
+		protected List<object> currEnumValues;
 
 		public override void Initialize()
 		{
