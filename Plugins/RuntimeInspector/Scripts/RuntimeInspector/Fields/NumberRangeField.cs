@@ -80,7 +80,7 @@ namespace RuntimeInspectorNamespace
 		{
 			base.Refresh();
 			IConvertible value;
-			if( BoundValues.GetSingle( out value ) )
+			if( BoundValues.TryGetSingle( out value ) )
 			{
 				slider.HasMultipleValues = false;
 				slider.Value = numberHandler.ConvertToFloat( value );

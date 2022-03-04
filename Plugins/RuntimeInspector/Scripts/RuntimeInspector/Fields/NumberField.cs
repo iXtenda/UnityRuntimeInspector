@@ -116,7 +116,7 @@ namespace RuntimeInspectorNamespace
 		private void UpdateInput()
 		{
 			IConvertible value;
-			if( BoundValues.GetSingle( out value ) )
+			if( BoundValues.TryGetSingle( out value ) )
 			{
 				input.Text = numberHandler.ToString( value, format, provider );
 				input.HasMultipleValues = false;
