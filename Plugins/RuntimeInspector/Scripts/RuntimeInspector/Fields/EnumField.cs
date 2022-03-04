@@ -173,5 +173,13 @@ namespace RuntimeInspectorNamespace
 				input.value = value.Value;
 			}
 		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			input.interactable = IsInteractable;
+			input.captionText.color = this.GetTextColor();
+			dropdownArrow.color = this.GetTextColor();
+		}
 	}
 }

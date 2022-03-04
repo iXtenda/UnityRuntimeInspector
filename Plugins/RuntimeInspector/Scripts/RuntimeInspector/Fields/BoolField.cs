@@ -61,5 +61,12 @@ namespace RuntimeInspectorNamespace
 				SwitchMarks( true );
 			}
 		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			input.interactable = IsInteractable;
+			input.graphic.color = this.GetTextColor();
+		}
 	}
 }

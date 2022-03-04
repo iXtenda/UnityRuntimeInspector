@@ -36,6 +36,9 @@ namespace RuntimeInspectorNamespace
 
 		private void ShowColorPicker( PointerEventData eventData )
 		{
+			if( !IsInteractable )
+				return;
+
 			var initialBoundValues = BoundValues;
 			Color? value = BoundValues.GetSingle();
 

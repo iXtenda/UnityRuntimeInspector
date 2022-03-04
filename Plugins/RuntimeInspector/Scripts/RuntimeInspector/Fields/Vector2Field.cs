@@ -153,5 +153,20 @@ namespace RuntimeInspectorNamespace
 			base.Refresh();
 			UpdateInputs();
 		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			Color textColor = this.GetTextColor();
+
+			inputX.BackingField.interactable = IsInteractable;
+			inputY.BackingField.interactable = IsInteractable;
+
+			inputX.BackingField.textComponent.color = textColor;
+			inputY.BackingField.textComponent.color = textColor;
+
+			labelX.color = textColor;
+			labelY.color = textColor;
+		}
 	}
 }

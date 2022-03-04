@@ -157,6 +157,7 @@ namespace RuntimeInspectorNamespace
 					( (IExpandableInspectorField) elementDrawer ).IsExpanded = true;
 
 				elementDrawer.NameRaw = Inspector.ArrayIndicesStartAtOne ? ( ( i + 1 ) + ":" ) : ( i + ":" );
+				elementDrawer.IsInteractable = IsInteractable;
 				elements.Add( elementDrawer );
 			}
 
@@ -304,6 +305,14 @@ namespace RuntimeInspectorNamespace
 				template = elementType.Instantiate();
 
 			return template;
+		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			sizeInput.BackingField.interactable = IsInteractable;
+			sizeInput.BackingField.textComponent.color = this.GetTextColor();
+			sizeText.color = this.GetTextColor();
 		}
 	}
 }

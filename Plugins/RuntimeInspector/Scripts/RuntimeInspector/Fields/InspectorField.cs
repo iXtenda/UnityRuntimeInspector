@@ -12,6 +12,8 @@ namespace RuntimeInspectorNamespace
 		public delegate ReadOnlyCollection<T> Getter<T>();
 		public delegate void Setter<T>( ReadOnlyCollection<T> value );
 
+		public delegate bool IsReadonlyGetter();
+
 #pragma warning disable 0649
 		[SerializeField]
 		protected LayoutElement layoutElement;
@@ -76,6 +78,43 @@ namespace RuntimeInspectorNamespace
 
 		private bool m_isVisible = true;
 		public bool IsVisible { get { return m_isVisible; } }
+
+		private bool m_isInteractableSelf = true;
+		private bool m_isInteractableInHierarchy = true;
+
+		public bool IsInteractable
+		{
+			get { return m_isInteractableInHierarchy && m_isInteractableSelf; }
+			set { IsInteractableInHierarchy = value; }
+		}
+
+		protected bool IsInteractableInHierarchy
+		{
+			get { return m_isInteractableInHierarchy; }
+			set
+			{
+				bool oldValue = IsInteractable;
+				m_isInteractableInHierarchy = value;
+				if (oldValue != IsInteractable)
+				{
+					OnIsInteractableChanged();
+				}
+			}
+		}
+
+		protected bool IsInteractableSelf
+		{
+			get { return m_isInteractableSelf; }
+			set
+			{
+				bool oldValue = IsInteractable;
+				m_isInteractableSelf = value;
+				if (oldValue != IsInteractable)
+				{
+					OnIsInteractableChanged();
+				}
+			}
+		}
 
 		public string Name
 		{
@@ -152,6 +191,17 @@ namespace RuntimeInspectorNamespace
 				variableNameText.rectTransform.sizeDelta = new Vector2( -Skin.IndentAmount * Depth, 0f );
 		}
 
+		protected virtual void OnIsInteractableChanged()
+		{
+			if( variableNameText )
+			{
+				if( IsInteractable )
+					variableNameText.color = Skin.TextColor;
+				else
+					variableNameText.color = Skin.InactiveTextColor;
+			}
+		}
+
 		/// Overload of BindTo that casts from <typeparam name="TParent"/> to the
 		/// value type of the inspector field.
 		public abstract void BindTo<TParent>(
@@ -202,6 +252,7 @@ namespace RuntimeInspectorNamespace
 
 		private Getter<TBinding> getter;
 		private Setter<TBinding> setter;
+		private IsReadonlyGetter isReadonlyGetter;
 
 		public override bool SupportsType( Type type )
 		{
@@ -358,6 +409,16 @@ namespace RuntimeInspectorNamespace
 				else
 					m_boundObjects = new TBinding[0].AsReadOnly();
 			}
+
+			if( isReadonlyGetter != null )
+			{
+				try
+				{
+					IsInteractableSelf = !isReadonlyGetter();
+				}
+				catch
+				{}
+			}
 		}
 	}
 
@@ -477,6 +538,7 @@ namespace RuntimeInspectorNamespace
 
 			IsExpanded = false;
 			HeaderVisibility = RuntimeInspector.HeaderVisibility.Collapsible;
+			IsInteractable = true;
 
 			ClearElements();
 		}
@@ -527,6 +589,13 @@ namespace RuntimeInspectorNamespace
 
 			for( int i = 0; i < elements.Count; i++ )
 				elements[i].Depth = Depth + 1;
+		}
+
+		protected override void OnIsInteractableChanged()
+		{
+			base.OnIsInteractableChanged();
+			for( int i = 0; i < elements.Count; i++ )
+				elements[i].IsInteractable = IsInteractable;
 		}
 
 		protected void RegenerateElements()
@@ -612,6 +681,7 @@ namespace RuntimeInspectorNamespace
 					variableName = componentType.Name + " component";
 
 				variableDrawer.BindTo( componentType, string.Empty, () => components.AsReadOnly(), ( value ) => { } );
+				variableDrawer.IsInteractable = IsInteractable;
 				variableDrawer.NameRaw = variableName;
 
 				elements.Add( variableDrawer );
@@ -641,6 +711,7 @@ namespace RuntimeInspectorNamespace
 			if( variableDrawer != null )
 			{
 				variableDrawer.BindTo( this, variable, variableName == null ? null : string.Empty );
+				variableDrawer.IsInteractable = IsInteractable;
 				if( variableName != null )
 					variableDrawer.NameRaw = variableName;
 

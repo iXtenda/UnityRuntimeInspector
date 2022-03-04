@@ -1183,6 +1183,13 @@ namespace RuntimeInspectorNamespace
 			return null;
 		}
 
+		public static Color GetTextColor( this InspectorField drawer )
+		{
+			if( drawer.IsInteractable )
+				return drawer.Skin.TextColor;
+			return drawer.Skin.InactiveTextColor;
+		}
+
 		public static Quaternion Quaternion( this Vector4 v )
 		{
 			return new Quaternion( v.x, v.y, v.z, v.w );
