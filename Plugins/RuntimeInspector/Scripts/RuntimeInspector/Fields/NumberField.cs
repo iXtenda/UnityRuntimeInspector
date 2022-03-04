@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
-using TMPro;
-using System.Collections;
-using Mode = RuntimeInspectorNamespace.StringField.Mode;
+using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public class NumberField : InspectorField
+	public class NumberField : InspectorField<IConvertible>
 	{
 		private static readonly HashSet<Type> supportedTypes = new HashSet<Type>()
 		{
@@ -22,21 +20,7 @@ namespace RuntimeInspectorNamespace
 		protected BoundInputField input;
 #pragma warning restore 0649
 
-		private Mode m_setterMode = Mode.OnValueChange;
-		public Mode SetterMode
-		{
-			get { return m_setterMode; }
-			set
-			{
-				m_setterMode = value;
-				input.CacheTextOnValueChange = m_setterMode == Mode.OnValueChange;
-			}
-		}
-
 		protected INumberHandler numberHandler;
-		public IFormatProvider provider = RuntimeInspectorUtils.numberFormat;
-		public const string DEFAULT_FORMAT = "0.######";
-		public string format = DEFAULT_FORMAT;
 
 		public override void Initialize()
 		{
@@ -57,49 +41,30 @@ namespace RuntimeInspectorNamespace
 		{
 			base.OnBound( variable );
 
-			if( input.BackingField.contentType != TMP_InputField.ContentType.Custom )
-			{
-				if( BoundVariableType == typeof( float ) || BoundVariableType == typeof( double ) || BoundVariableType == typeof( decimal ) )
-					input.BackingField.contentType = TMP_InputField.ContentType.DecimalNumber;
-				else
-					input.BackingField.contentType = TMP_InputField.ContentType.IntegerNumber;
-			}
+			if( m_boundVariableType == typeof( float ) || m_boundVariableType == typeof( double ) || m_boundVariableType == typeof( decimal ) )
+				input.BackingField.contentType = InputField.ContentType.DecimalNumber;
+			else
+				input.BackingField.contentType = InputField.ContentType.IntegerNumber;
 
-			numberHandler = NumberHandlers.Get( BoundVariableType );
+			numberHandler = NumberHandlers.Get( m_boundVariableType );
 			UpdateInput();
-		}
-
-		protected override void OnUnbound()
-		{
-			base.OnUnbound();
-			SetterMode = default;
 		}
 
 		protected virtual bool OnValueChanged( BoundInputField source, string input )
 		{
-			if( m_setterMode != Mode.OnValueChange )
-				return false;
-			return ApplyValue( input );
+			IConvertible value;
+			if( numberHandler.TryParse( input, out value ) )
+			{
+				BoundValues = new IConvertible[] { value }.AsReadOnly();
+				return true;
+			}
+			return false;
 		}
 
 		private bool OnValueSubmitted( BoundInputField source, string input )
 		{
-			if( m_setterMode != Mode.OnSubmit )
-				return false;
 			Inspector.RefreshDelayed();
-			return ApplyValue( input );
-		}
-
-		private bool ApplyValue( string input )
-		{
-			object value;
-			if( numberHandler.TryParse( input, out value ) )
-			{
-				Value = value;
-				return true;
-			}
-
-			return false;
+			return OnValueChanged( source, input );
 		}
 
 		protected override void OnSkinChanged()
@@ -120,33 +85,16 @@ namespace RuntimeInspectorNamespace
 
 		private void UpdateInput()
 		{
-			object first = null;
-
-			// Regard "approximate equality" for float and double used in
-			// NumberHandlers
-			if( Value is IEnumerable enumerable )
+			IConvertible value;
+			if( BoundValues.GetSingle( out value ) )
 			{
-				foreach( object f in enumerable )
-				{
-					if( first == null )
-					{
-						first = f;
-						continue;
-					}
-
-					if( !numberHandler.ValuesAreEqual( first, f ) )
-					{
-						input.HasMultipleValues = true;
-						return;
-					}
-				}
+				input.Text = value.ToString( RuntimeInspectorUtils.numberFormat );
+				input.HasMultipleValues = false;
 			}
-
-			if( first == null )
-				first = Value;
-
-			input.HasMultipleValues = false;
-			input.Text = numberHandler.ToString( first, format, provider );
+			else
+			{
+				input.HasMultipleValues = true;
+			}
 		}
 
 		protected override void OnIsInteractableChanged()

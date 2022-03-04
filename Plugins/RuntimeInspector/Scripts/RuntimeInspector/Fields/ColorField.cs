@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Reflection;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public class ColorField : InspectorField
+	public class ColorField : InspectorField<Color>
 	{
 #pragma warning disable 0649
 		[SerializeField]
@@ -19,9 +18,8 @@ namespace RuntimeInspectorNamespace
 		private Text multiValueText;
 
 		private Image colorImg;
-#pragma warning restore 0649
 
-		private bool isColor32;
+#pragma warning restore 0649
 
 		public override void Initialize()
 		{
@@ -36,42 +34,27 @@ namespace RuntimeInspectorNamespace
 			return type == typeof( Color ) || type == typeof( Color32 );
 		}
 
-		protected override void OnBound( MemberInfo variable )
-		{
-			base.OnBound( variable );
-			isColor32 = BoundVariableType == typeof( Color32 );
-		}
-
 		private void ShowColorPicker( PointerEventData eventData )
 		{
 			if( !IsInteractable )
 				return;
 
-			Color initial;
-			object initialValue = Value;
-
-			if( HasMultipleValues )
-				initial = Color.white;
-			else
-				initial = isColor32 ? (Color) (Color32) Value : (Color) Value;
+			var initialBoundValues = BoundValues;
+			Color? value = BoundValues.GetSingle();
 
 			ColorPicker.Instance.Skin = Inspector.Skin;
 			ColorPicker.Instance.Show(
 				OnColorChanged,
 				null,
-				initial,
+				value.HasValue ? value.Value : Color.white,
 				Inspector.Canvas,
-				() => Value = initialValue );
+				() => BoundValues = initialBoundValues );
 		}
 
 		private void OnColorChanged( Color32 color )
 		{
 			colorImg.color = color;
-
-			if( isColor32 )
-				Value = color;
-			else
-				Value = (Color) color;
+			BoundValues = new Color[] { color }.AsReadOnly();
 		}
 
 		protected override void OnSkinChanged()
@@ -87,20 +70,17 @@ namespace RuntimeInspectorNamespace
 		public override void Refresh()
 		{
 			base.Refresh();
-
-			if( HasMultipleValues )
+			Color? value = BoundValues.GetSingle();
+			if( value.HasValue )
 			{
-				colorImg.color = Skin.InputFieldNormalBackgroundColor;
-				multiValueText.enabled = true;
-				return;
+				multiValueText.enabled = false;
+				colorImg.color = value.Value;
 			}
-
-			multiValueText.enabled = false;
-
-			if( isColor32 )
-				colorImg.color = (Color32) Value;
 			else
-				colorImg.color = (Color) Value;
+			{
+				multiValueText.enabled = true;
+				colorImg.color = Skin.InputFieldNormalBackgroundColor;
+			}
 		}
 	}
 }

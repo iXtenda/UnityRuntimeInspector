@@ -7,35 +7,53 @@ using Object = UnityEngine.Object;
 
 namespace RuntimeInspectorNamespace
 {
-    public class GameObjectField : ExpandableInspectorField
+	public class GameObjectField : ExpandableInspectorField<GameObject>
 	{
 		protected override int Length { get { return components.Count + 4; } } // 4: active, name, tag, layer
 
+		private Action<GameObject, bool> isActiveSetter;
+		private Action<GameObject, string> nameSetter;
+		private Action<GameObject, string> tagSetter;
+
+		private Func<GameObject, bool> isActiveGetter;
+		private Func<GameObject, string> nameGetter;
+		private Func<GameObject, string> tagGetter;
 		private PropertyInfo layerProp;
 
+		// Outer list: Each entry corresponds to one component drawer drawn.
+		// Inner list: Each drawer can be bound to a list of components of the same type.
 		private readonly List<List<Component>> components = new List<List<Component>>();
+
+		// Objects in here should be drawn expanded
 		private readonly HashSet<Object> expandedElements = new HashSet<Object>();
 
 		private Type[] addComponentTypes;
 
-		internal static ExposedMethod addComponentMethod = new ExposedMethod(
-			typeof( GameObjectField ).GetMethod( nameof( AddComponentButtonClicked ), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance ),
-			new RuntimeInspectorButtonAttribute( "Add Component", false, ButtonVisibility.InitializedObjects ),
-			false);
-		internal static ExposedMethod removeComponentMethod = new ExposedMethod(
-			typeof( GameObjectField ).GetMethod( nameof( RemoveComponentButtonClicked ), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static ),
-			new RuntimeInspectorButtonAttribute( "Remove Component", false, ButtonVisibility.InitializedObjects ),
-			true);
+		internal static ExposedMethod addComponentMethod = new ExposedMethod( typeof( GameObjectField ).GetMethod( "AddComponentButtonClicked", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance ), new RuntimeInspectorButtonAttribute( "Add Component", false, ButtonVisibility.InitializedObjects ), false );
+		internal static ExposedMethod removeComponentMethod = new ExposedMethod( typeof( GameObjectField ).GetMethod( "RemoveComponentButtonClicked", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static ), new RuntimeInspectorButtonAttribute( "Remove Component", false, ButtonVisibility.InitializedObjects ), true );
 
 		public override void Initialize()
 		{
 			base.Initialize();
-			layerProp = typeof( GameObject ).GetProperty( "layer" );
-		}
 
-		public override bool SupportsType( Type type )
-		{
-			return typeof( GameObject ) == type;
+			isActiveGetter = go => go.activeSelf;
+			isActiveSetter = ( go, value ) => go.SetActive( value );
+
+			nameGetter = go => go.name;
+			nameSetter = ( go, value ) =>
+			{
+				go.name = value;
+				NameRaw = go.GetNameWithType();
+
+				RuntimeHierarchy hierarchy = Inspector.ConnectedHierarchy;
+				if( hierarchy )
+					hierarchy.RefreshNameOf( go.transform );
+			};
+
+			tagGetter = go => go.tag;
+			tagSetter = ( go, value ) => go.tag = value;
+
+			layerProp = typeof( GameObject ).GetProperty( "layer" );
 		}
 
 		protected override void OnUnbound()
@@ -52,8 +70,8 @@ namespace RuntimeInspectorNamespace
 			for( int i = 0; i < elements.Count; i++ )
 			{
 				// Don't keep track of non-expandable drawers' or destroyed components' expanded states
-				if( elements[i] is ExpandableInspectorField drawer && drawer.Value is Object obj && drawer.IsExpanded )
-					expandedElements.Add( obj );
+				if( elements[i] is IExpandableInspectorField && ( (IExpandableInspectorField) elements[i] ).IsExpanded )
+					expandedElements.Add( elements[i] );
 			}
 
 			base.ClearElements();
@@ -61,36 +79,16 @@ namespace RuntimeInspectorNamespace
 
 		protected override void GenerateElements()
 		{
-			CreateDrawer<GameObject, bool>(
-				variableName: "Is Active",
-				getter: go => go.activeSelf,
-				setter: ( go, active ) => go.SetActive( active ));
-
-			StringField tagField = CreateDrawer<GameObject, string>(
-				variableName: "Tag",
-				getter: go => go.tag,
-				setter: ( go, tag ) => go.tag = tag ) as StringField;
-
-			StringField nameField = CreateDrawer<GameObject, string>(
-				variableName: "Name",
-				getter: go => go.name,
-				setter: ( go, name ) =>
-				{
-					go.name = name;
-					NameRaw = go.GetNameWithType();
-
-					RuntimeHierarchy hierarchy = Inspector.ConnectedHierarchy;
-					if( hierarchy )
-						hierarchy.RefreshNameOf( go.transform );
-				}) as StringField;
-
+			CreateDrawer<bool>( "Is Active", isActiveGetter, isActiveSetter );
+			StringField nameField = CreateDrawer<string>( "Name", nameGetter, nameSetter ) as StringField;
+			StringField tagField = CreateDrawer<string>( "Tag", tagGetter, tagSetter ) as StringField;
 			CreateDrawerForVariable( layerProp, "Layer" );
 
 			foreach( var multiEditedComponents in components )
 			{
-				InspectorField drawer = CreateDrawerForComponent( multiEditedComponents );
+				InspectorField drawer = CreateDrawerForComponents( multiEditedComponents );
 
-				if( !( drawer is ExpandableInspectorField expandable ) )
+				if( !( drawer is IExpandableInspectorField ) )
 					return;
 
 				foreach( Component comp in multiEditedComponents )
@@ -98,7 +96,7 @@ namespace RuntimeInspectorNamespace
 					if( expandedElements.Contains( comp ) )
 					{
 						// If one of the multi-edited components is expanded, expand their shared drawer
-						expandable.IsExpanded = true;
+						( (IExpandableInspectorField) drawer).IsExpanded = true;
 						break;
 					}
 				}
@@ -111,7 +109,10 @@ namespace RuntimeInspectorNamespace
 				tagField.SetterMode = StringField.Mode.OnSubmit;
 
 			if( Inspector.ShowAddComponentButton )
-				CreateExposedMethodButton( addComponentMethod, () => this, ( value ) => { } );
+				CreateExposedMethodButton(
+					addComponentMethod,
+					() => new object[] { this }.AsReadOnly(),
+					value => { } );
 
 			expandedElements.Clear();
 		}
@@ -137,211 +138,189 @@ namespace RuntimeInspectorNamespace
 		{
 			// Refresh components
 			components.Clear();
-			if( Value is GameObject go )
+
+			// Maps a component type to bound GameObjects having a component of
+			// this type. GameObjects in turn are mapped to their components of
+			// this type.
+			var lut = new Dictionary<Type, Dictionary<GameObject, Queue<Component>>>();
+
+			// Create Look Up Table which sorts components of all bound GameObjects
+			// so that components of equal type on different objects are bundled
+			// into one drawer.
+			// Two drawers can end up with the same component type, if all bound
+			// objects have the same component at least two times.
+			foreach( GameObject obj in BoundValues )
 			{
-				foreach( Component comp in GetFilteredComponents( go ) )
-					components.Add( new List<Component> { comp } );
+				if( !obj )
+					continue;
+
+				foreach( Component comp in GetFilteredComponents( obj ) )
+				{
+					Type compType = comp.GetType();
+					Dictionary<GameObject, Queue<Component>> goToComps;
+					if( !lut.TryGetValue( compType, out goToComps ) )
+					{
+						goToComps = new Dictionary<GameObject, Queue<Component>>();
+						lut[compType] = goToComps;
+					}
+
+					Queue<Component> compsOnGoOfCompType;
+					if( !goToComps.TryGetValue( obj, out compsOnGoOfCompType ) )
+					{
+						compsOnGoOfCompType = new Queue<Component>();
+						goToComps[obj] = compsOnGoOfCompType;
+					}
+					compsOnGoOfCompType.Enqueue( comp );
+				}
 			}
-			else if( Value is IEnumerable gameObjects )
+
+			// Read LUT
+			while( lut.Count > 0 )
 			{
-				var lut = new Dictionary<Type, Dictionary<GameObject, Queue<Component>>>();
-				int goCount = 0;
+				// Types that have been processed already.
+				// Exists because we shouldn't remove types from LUT while we iterate
+				// over it.
+				var checkedTypes = new List<Type>();
 
-				foreach( GameObject obj in gameObjects )
+				foreach( var pair in lut )
 				{
-					goCount++;
-					foreach( Component comp in GetFilteredComponents( obj ) )
+					Type compType = pair.Key;
+					var goToComps = pair.Value;
+
+					// Components to bind to the draw for 'compType'
+					var toDraw = new List<Component>();
+
+					// Current component type must be on every bound GameObject to be
+					// drawn
+					bool compOnAllObjects = true;
+
+					foreach( GameObject go in BoundValues )
 					{
-						Dictionary<GameObject, Queue<Component>> dictInLut;
-						Queue<Component> queueInDictInLut;
-						Type compType = comp.GetType();
-
-						if( !lut.TryGetValue( compType, out dictInLut ) )
+						Queue<Component> compsOnGoOfCompType;
+						if( goToComps.TryGetValue( go, out compsOnGoOfCompType ) )
 						{
-							dictInLut = new Dictionary<GameObject, Queue<Component>>();
-							lut[compType] = dictInLut;
+							toDraw.Add( compsOnGoOfCompType.Dequeue() );
+							if( compsOnGoOfCompType.Count == 0 )
+								goToComps.Remove( go );
 						}
-
-						if( !dictInLut.TryGetValue( obj, out queueInDictInLut ) )
+						else
 						{
-							queueInDictInLut = new Queue<Component>();
-							dictInLut[obj] = queueInDictInLut;
-						}
-
-						queueInDictInLut.Enqueue( comp );
-					}
-				}
-
-				while( lut.Count > 0 )
-				{
-					var invalidTypes = new List<Type>();
-
-					foreach( var pair in lut )
-					{
-						Type compType = pair.Key;
-						var dictInLut = pair.Value;
-						var comps = new List<Component>( goCount );
-						bool compOnAllObjects = true;
-
-						foreach( GameObject obj in gameObjects )
-						{
-							if( dictInLut.TryGetValue( obj, out var queue ) )
-							{
-								comps.Add( queue.Dequeue() );
-								if( queue.Count == 0 )
-									dictInLut.Remove( obj );
-							}
-							else
-							{
-								compOnAllObjects = false;
-								invalidTypes.Add( compType );
-								break;
-							}
-						}
-
-						if( compOnAllObjects )
-						{
-							components.Add( comps );
-
-							if( dictInLut.Count == 0)
-								invalidTypes.Add( compType );
+							// Type can't be drawn. It's not on every bound object.
+							compOnAllObjects = false;
+							checkedTypes.Add( compType );
+							break;
 						}
 					}
 
-					foreach( Type type in invalidTypes )
-						lut.Remove( type );
+					if( compOnAllObjects )
+					{
+						components.Add( toDraw );
+						if( goToComps.Count == 0)
+							// No objects with a component of this type are left to process.
+							// Type doesn't need to be looked up anymore.
+							checkedTypes.Add( compType );
+					}
 				}
+
+				foreach( Type type in checkedTypes )
+					lut.Remove( type );
 			}
 
 			// Regenerate components' drawers, if necessary
 			base.Refresh();
 		}
 
-		private void FillComponentTypes()
-		{
-			List<Type> componentTypes = new List<Type>( 128 );
-
-#if UNITY_EDITOR || !NETFX_CORE
-			Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-#else
-			// Common Unity assemblies
-			IEnumerable<Assembly> assemblies = new HashSet<Assembly> 
-			{
-				typeof( Transform ).Assembly,
-				typeof( RectTransform ).Assembly,
-				typeof( Rigidbody ).Assembly,
-				typeof( Rigidbody2D ).Assembly,
-				typeof( AudioSource ).Assembly
-			};
-#endif
-			// Search assemblies for Component types
-			foreach( Assembly assembly in assemblies )
-			{
-#if( NET_4_6 || NET_STANDARD_2_0 ) && ( UNITY_EDITOR || !NETFX_CORE )
-				if( assembly.IsDynamic )
-					continue;
-#endif
-				try
-				{
-					foreach( Type type in assembly.GetExportedTypes() )
-					{
-						if( !typeof( Component ).IsAssignableFrom( type ) )
-							continue;
-
-#if UNITY_EDITOR || !NETFX_CORE
-						if( type.IsGenericType || type.IsAbstract )
-#else
-						if( type.GetTypeInfo().IsGenericType || type.GetTypeInfo().IsAbstract )
-#endif
-							continue;
-
-						componentTypes.Add( type );
-					}
-				}
-				catch( NotSupportedException ) { }
-				catch( System.IO.FileNotFoundException ) { }
-				catch( Exception e )
-				{
-					Debug.LogError( "Couldn't search assembly for Component types: " + assembly.GetName().Name + "\n" + e.ToString() );
-				}
-			}
-
-			addComponentTypes = componentTypes.ToArray();
-		}
-
 		[UnityEngine.Scripting.Preserve] // This method is bound to addComponentMethod
 		private void AddComponentButtonClicked()
 		{
-			ObjectReferencePicker.ReferenceCallback onSelectionConfirmed = null;
-
-			if( Value is GameObject target )
-			{
-				onSelectionConfirmed = type =>
-				{
-					// Make sure that RuntimeInspector is still inspecting this GameObject
-					if( type != null && target && Inspector && ( Inspector.InspectedObject as GameObject ) == target )
-					{
-						target.AddComponent( (Type) type );
-						Inspector.Refresh();
-					}
-				};
-			}
-			else if( Value is IEnumerable<GameObject> targets )
-			{
-				onSelectionConfirmed = type =>
-				{
-					if( !( Inspector.InspectedObject is IEnumerable<GameObject> inspected ) )
-						return;
-
-					if( type == null || targets == null || !Inspector || inspected != targets )
-						return;
-
-					foreach( GameObject target in targets )
-						target.AddComponent( (Type) type );
-
-					Inspector.Refresh();
-				};
-			}
-			else
-			{
+			if( BoundValues.Count == 0 )
 				return;
+
+			if( addComponentTypes == null )
+			{
+				List<Type> componentTypes = new List<Type>( 128 );
+
+#if UNITY_EDITOR || !NETFX_CORE
+				Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+#else
+				// Common Unity assemblies
+				IEnumerable<Assembly> assemblies = new HashSet<Assembly> 
+				{
+					typeof( Transform ).Assembly,
+					typeof( RectTransform ).Assembly,
+					typeof( Rigidbody ).Assembly,
+					typeof( Rigidbody2D ).Assembly,
+					typeof( AudioSource ).Assembly
+				};
+#endif
+				// Search assemblies for Component types
+				foreach( Assembly assembly in assemblies )
+				{
+#if( NET_4_6 || NET_STANDARD_2_0 ) && ( UNITY_EDITOR || !NETFX_CORE )
+					if( assembly.IsDynamic )
+						continue;
+#endif
+					try
+					{
+						foreach( Type type in assembly.GetExportedTypes() )
+						{
+							if( !typeof( Component ).IsAssignableFrom( type ) )
+								continue;
+
+#if UNITY_EDITOR || !NETFX_CORE
+							if( type.IsGenericType || type.IsAbstract )
+#else
+							if( type.GetTypeInfo().IsGenericType || type.GetTypeInfo().IsAbstract )
+#endif
+								continue;
+
+							componentTypes.Add( type );
+						}
+					}
+					catch( NotSupportedException ) { }
+					catch( System.IO.FileNotFoundException ) { }
+					catch( Exception e )
+					{
+						Debug.LogError( "Couldn't search assembly for Component types: " + assembly.GetName().Name + "\n" + e.ToString() );
+					}
+				}
+
+				addComponentTypes = componentTypes.ToArray();
 			}
 
 			ObjectReferencePicker.Instance.Skin = Inspector.Skin;
 			ObjectReferencePicker.Instance.Show(
-				onReferenceChanged: null,
-				onSelectionConfirmed: onSelectionConfirmed,
-				referenceNameGetter:        type => ( (Type) type ).FullName,
-				referenceDisplayNameGetter: type => ( (Type) type ).FullName,
-                references: addComponentTypes,
-				initialReference: null,
-				includeNullReference: false,
-				title: "Add Component",
-				referenceCanvas: Inspector.Canvas );
+				null, x =>
+				{
+					if( x is Type && Inspector )
+					{
+						foreach( GameObject o in BoundValues )
+						{
+							// Make sure that RuntimeInspector is still inspecting this GameObject
+							if( Inspector.InspectedObjects.Any( o.Equals ) )
+									o.AddComponent( (Type) x );
+						}
+						Inspector.Refresh();
+					}
+				},
+				( type ) => ( (Type) type ).FullName,
+				( type ) => ( (Type) type ).FullName,
+				addComponentTypes, null, false, "Add Component", Inspector.Canvas );
 		}
 
 		[UnityEngine.Scripting.Preserve] // This method is bound to removeComponentMethod
-		private static void RemoveComponentButtonClicked( ExpandableInspectorField componentDrawer )
+		private static void RemoveComponentButtonClicked( InspectorField drawer )
 		{
-			if( !componentDrawer || !componentDrawer.Inspector )
-				return;
-
-			void Remove( Component component )
-			{
-				if( component && !( component is Transform ) )
-					componentDrawer.StartCoroutine( RemoveComponentCoroutine( component, componentDrawer.Inspector ) );
-			}
-
-			if( componentDrawer.Value is Component component )
-				Remove( component );
-			else if( componentDrawer.Value is IEnumerable<Component> components )
-				foreach( var comp in components )
-					Remove( comp );
+			drawer.StartCoroutine( RemoveComponentCoroutine(
+				drawer.GetBoundOfType<Component>(),
+				drawer.Inspector) );
 		}
 
-		private static IEnumerator RemoveComponentCoroutine( Component component, RuntimeInspector inspector )
+		private static IEnumerator RemoveComponentCoroutine( IEnumerable<Component> components, RuntimeInspector inspector )
 		{
-			Destroy( component );
+			foreach( Component component in components )
+				if( component && ! ( component is Transform ) )
+					Destroy( component );
 
 			// Destroy operation doesn't take place immediately, wait for the component to be fully destroyed
 			yield return null;

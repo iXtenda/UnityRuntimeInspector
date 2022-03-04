@@ -4,69 +4,53 @@ using System.Globalization;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
-using Mode = RuntimeInspectorNamespace.StringField.Mode;
 
 namespace RuntimeInspectorNamespace
 {
-    public class Vector3Field : InspectorField
+	public class Vector3Field : InspectorField<Vector3>
 	{
 #pragma warning disable 0649
 		[SerializeField]
-		protected BoundInputField inputX;
+		private BoundInputField inputX;
 
 		[SerializeField]
-		protected BoundInputField inputY;
+		private BoundInputField inputY;
 
 		[SerializeField]
-		protected BoundInputField inputZ;
+		private BoundInputField inputZ;
 
 		[SerializeField]
-		protected Text labelX;
+		private Text labelX;
 
 		[SerializeField]
-		protected Text labelY;
+		private Text labelY;
 
 		[SerializeField]
-		protected Text labelZ;
+		private Text labelZ;
 #pragma warning restore 0649
 
 #if UNITY_2017_2_OR_NEWER
 		private bool isVector3Int;
 #endif
 
-		private Mode m_setterMode = Mode.OnValueChange;
-		public Mode SetterMode
-		{
-			get { return m_setterMode; }
-			set
-			{
-				m_setterMode = value;
-				inputX.CacheTextOnValueChange = value == Mode.OnValueChange;
-				inputY.CacheTextOnValueChange = value == Mode.OnValueChange;
-				inputZ.CacheTextOnValueChange = value == Mode.OnValueChange;
-			}
-		}
-
-		public IFormatProvider provider = RuntimeInspectorUtils.numberFormat;
-		public string format = NumberField.DEFAULT_FORMAT;
-
 		public override void Initialize()
 		{
 			base.Initialize();
 
 			inputX.Initialize();
-			inputX.OnValueChanged += ( _, input ) => OnValueChanged( input, 0 );
-			inputX.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 0 );
-			inputX.DefaultEmptyValue = "0";
-
 			inputY.Initialize();
-			inputY.OnValueChanged += ( _, input ) => OnValueChanged( input, 1 );
-			inputY.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 1 );
-			inputY.DefaultEmptyValue = "0";
-
 			inputZ.Initialize();
-			inputZ.OnValueChanged += ( _, input ) => OnValueChanged( input, 2 );
-			inputZ.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 2 );
+
+			inputX.OnValueChanged += OnValueChanged;
+			inputY.OnValueChanged += OnValueChanged;
+			inputZ.OnValueChanged += OnValueChanged;
+
+			inputX.OnValueSubmitted += OnValueSubmitted;
+			inputY.OnValueSubmitted += OnValueSubmitted;
+			inputZ.OnValueSubmitted += OnValueSubmitted;
+
+			inputX.DefaultEmptyValue = "0";
+			inputY.DefaultEmptyValue = "0";
 			inputZ.DefaultEmptyValue = "0";
 		}
 
@@ -82,192 +66,84 @@ namespace RuntimeInspectorNamespace
 		protected override void OnBound( MemberInfo variable )
 		{
 			base.OnBound( variable );
+
 #if UNITY_2017_2_OR_NEWER
-			isVector3Int = BoundVariableType == typeof( Vector3Int );
+			isVector3Int = m_boundVariableType == typeof( Vector3Int );
 #endif
 			UpdateInputs();
 		}
 
-		protected override void OnUnbound()
-		{
-			base.OnUnbound();
-			SetterMode = Mode.OnValueChange;
-		}
-
-		private bool OnValueChanged( string input, int coordinate )
-		{
-			if( m_setterMode != Mode.OnValueChange )
-				return false;
-
-#if UNITY_2017_2_OR_NEWER
-			if( isVector3Int )
-				return OnIntChanged( input, coordinate );
-#endif
-			return OnFloatChanged( input, coordinate );
-		}
-
-		private bool OnIntChanged( string input, int coordinate )
-		{
-			if( !int.TryParse( input, NumberStyles.Float, provider, out int value ) )
-				return false;
-
-			if( Value is MultiValue multiValue )
-			{
-				var list = new List<Vector3Int>();
-				foreach( Vector3Int oldV in multiValue )
-				{
-					Vector3Int newV = oldV;
-					newV[coordinate] = value;
-					list.Add( newV );
-				}
-				Value = new MultiValue( list );
-			}
-			else
-			{
-				Vector3Int newV = (Vector3Int) Value;
-				newV[coordinate] = value;
-				Value = newV;
-			}
-
-			return true;
-		}
-
-		private bool OnFloatChanged( string input, int coordinate )
-		{
-			if( !float.TryParse( input, NumberStyles.Float, provider, out float value ) )
-				return false;
-
-			if( Value is MultiValue multiValue )
-			{
-				var list = new List<Vector3>();
-				foreach( Vector3 oldV in multiValue )
-				{
-					Vector3 newV = oldV;
-					newV[coordinate] = value;
-					list.Add( newV );
-				}
-				Value = new MultiValue( list );
-			}
-			else
-			{
-				Vector3 newV = (Vector3) Value;
-				newV[coordinate] = value;
-				Value = newV;
-			}
-
-			return true;
-		}
-
 		private void UpdateInputs()
 		{
+			float?[] coords = BoundValues
+				.Select( RuntimeInspectorUtils.ToArray )
+				.SinglePerEntry();
+
+			inputX.HasMultipleValues = !coords[0].HasValue;
+			inputY.HasMultipleValues = !coords[1].HasValue;
+			inputZ.HasMultipleValues = !coords[2].HasValue;
+
 #if UNITY_2017_2_OR_NEWER
 			if( isVector3Int )
-				UpdateInputsFromInt();
+				UpdateInputTexts( coords.Cast<float?, int?>() );
+			else
 #endif
-			UpdateInputsFromFloat();
+				UpdateInputTexts( coords );
 		}
 
-		private void UpdateInputsFromInt()
+		private void UpdateInputTexts<T>( IList<T?> coords ) where T : struct, IConvertible
 		{
-			var coords = new int?[3];
+			if( coords[0].HasValue )
+				inputX.Text = coords[0].Value.ToString( RuntimeInspectorUtils.numberFormat );
+			if( coords[1].HasValue )
+				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
+			if( coords[2].HasValue )
+				inputZ.Text = coords[2].Value.ToString( RuntimeInspectorUtils.numberFormat );
+		}
 
-			if( Value is MultiValue multiValue )
+		private bool OnValueChanged( BoundInputField source, string input )
+		{
+			bool couldParse;
+			float value;
+
+#if UNITY_2017_2_OR_NEWER
+			if( isVector3Int )
 			{
-				int count = 0;
-				foreach( Vector3Int v in multiValue )
-				{
-					count++;
-					if( count == 1 )
-					{
-						for( int i = 0; i < coords.Length; i++ )
-							coords[i] = v[i];
-						continue;
-					}
-
-					for( int i = 0; i < coords.Length; i++ )
-					{
-						float? coord = coords[i];
-						if( coord.HasValue )
-							if( coord.Value != v[i] )
-								coords[i] = null;
-					}
-				}
+					int intval;
+					couldParse = int.TryParse( input, NumberStyles.Integer, RuntimeInspectorUtils.numberFormat, out intval );
+					value = intval;
 			}
 			else
-			{
-				var v = (Vector3Int) Value;
-				for( int i = 0; i < coords.Length; i++ )
-					coords[i] = v[i];
-			}
+#endif
+			couldParse = float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out value );
 
-			inputX.HasMultipleValues = !coords[0].HasValue;
-			inputY.HasMultipleValues = !coords[1].HasValue;
-			inputZ.HasMultipleValues = !coords[2].HasValue;
+			if( !couldParse )
+					return false;
 
-			if( coords[0].HasValue )
-				inputX.Text = coords[0].Value.ToString( provider );
-			if( coords[1].HasValue )
-				inputY.Text = coords[1].Value.ToString( provider );
-			if( coords[2].HasValue )
-				inputZ.Text = coords[2].Value.ToString( provider );
-		}
-
-		private void UpdateInputsFromFloat()
-		{
-			var coords = new float?[3];
-
-			if( Value is MultiValue multiValue )
-			{
-				int count = 0;
-				foreach( Vector3 v in multiValue )
-				{
-					count++;
-					if( count == 1 )
-					{
-						for( int i = 0; i < coords.Length; i++ )
-							coords[i] = v[i];
-						continue;
-					}
-
-					for( int i = 0; i < coords.Length; i++ )
-					{
-						float? coord = coords[i];
-						if( coord.HasValue )
-							if( !RuntimeInspectorUtils.ApproxEqual( coord.Value, v[i] ) )
-								coords[i] = null;
-					}
-				}
-			}
+			int coord;
+			if( source == inputX )
+					coord = 0;
+			else if( source == inputY )
+					coord = 1;
 			else
+					coord = 2;
+
+			var newVs = new List<Vector3>();
+			foreach( Vector3 oldV in BoundValues )
 			{
-				var v = (Vector3) Value;
-				for( int i = 0; i < coords.Length; i++ )
-					coords[i] = v[i];
+				Vector3 newV = oldV;
+				newV[coord] = value;
+				newVs.Add( newV );
 			}
 
-			inputX.HasMultipleValues = !coords[0].HasValue;
-			inputY.HasMultipleValues = !coords[1].HasValue;
-			inputZ.HasMultipleValues = !coords[2].HasValue;
-
-			if( coords[0].HasValue )
-				inputX.Text = coords[0].Value.ToString( format, provider );
-			if( coords[1].HasValue )
-				inputY.Text = coords[1].Value.ToString( format, provider );
-			if( coords[2].HasValue )
-				inputZ.Text = coords[2].Value.ToString( format, provider );
+			BoundValues = newVs.AsReadOnly();
+			return true;
 		}
 
-		private bool OnValueSubmitted( string input, int coordinate )
+		private bool OnValueSubmitted( BoundInputField source, string input )
 		{
-			if( m_setterMode != Mode.OnSubmit )
-				return false;
-
 			Inspector.RefreshDelayed();
-#if UNITY_2017_2_OR_NEWER
-			if( isVector3Int )
-				return OnIntChanged( input, coordinate );
-#endif
-			return OnFloatChanged( input, coordinate );
+			return OnValueChanged( source, input );
 		}
 
 		protected override void OnSkinChanged()

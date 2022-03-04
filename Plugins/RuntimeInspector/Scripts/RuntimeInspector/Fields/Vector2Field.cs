@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-    public class Vector2Field : InspectorField
+	public class Vector2Field : InspectorField<Vector2>
 	{
 #pragma warning disable 0649
 		[SerializeField]
@@ -32,13 +32,15 @@ namespace RuntimeInspectorNamespace
 			base.Initialize();
 
 			inputX.Initialize();
-			inputX.OnValueChanged += ( _, input ) => OnValueChanged( input, 0 );
-			inputX.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 0 );
-			inputX.DefaultEmptyValue = "0";
-
 			inputY.Initialize();
-			inputY.OnValueChanged += ( _, input ) => OnValueChanged( input, 1 );
-			inputY.OnValueSubmitted += ( _, input ) => OnValueSubmitted( input, 1 );
+
+			inputX.OnValueChanged += OnValueChanged;
+			inputY.OnValueChanged += OnValueChanged;
+
+			inputX.OnValueSubmitted += OnValueSubmitted;
+			inputY.OnValueSubmitted += OnValueSubmitted;
+
+			inputX.DefaultEmptyValue = "0";
 			inputY.DefaultEmptyValue = "0";
 		}
 
@@ -54,170 +56,75 @@ namespace RuntimeInspectorNamespace
 		protected override void OnBound( MemberInfo variable )
 		{
 			base.OnBound( variable );
+
 #if UNITY_2017_2_OR_NEWER
-			isVector2Int = BoundVariableType == typeof( Vector2Int );
+			isVector2Int = m_boundVariableType == typeof( Vector2Int );
 #endif
 			UpdateInputs();
 		}
 
-		private bool OnValueChanged( string input, int coordinate )
-		{
-#if UNITY_2017_2_OR_NEWER
-			if( isVector2Int )
-				return OnIntChanged( input, coordinate );
-#endif
-			return OnFloatChanged( input, coordinate );
-		}
-
-		private bool OnIntChanged( string input, int coordinate )
-		{
-			if( !int.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out int value ) )
-				return false;
-
-			if( Value is MultiValue multiValue )
-			{
-				var list = new List<Vector2Int>();
-				foreach( Vector2Int oldV in multiValue )
-				{
-					Vector2Int newV = oldV;
-					newV[coordinate] = value;
-					list.Add( newV );
-				}
-				Value = new MultiValue( list );
-			}
-			else
-			{
-				Vector2Int newV = (Vector2Int) Value;
-				newV[coordinate] = value;
-				Value = newV;
-			}
-
-			return true;
-		}
-
-		private bool OnFloatChanged( string input, int coordinate )
-		{
-			if( !float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out float value ) )
-				return false;
-
-			if( Value is MultiValue multiValue )
-			{
-				var list = new List<Vector2>();
-				foreach( Vector2 oldV in multiValue )
-				{
-					Vector2 newV = oldV;
-					newV[coordinate] = value;
-					list.Add( newV );
-				}
-				Value = new MultiValue( list );
-			}
-			else
-			{
-				Vector2 newV = (Vector2) Value;
-				newV[coordinate] = value;
-				Value = newV;
-			}
-
-			return true;
-		}
-
 		private void UpdateInputs()
 		{
+			float?[] coords = BoundValues
+				.Select( RuntimeInspectorUtils.ToArray )
+				.SinglePerEntry();
+
+			inputX.HasMultipleValues = !coords[0].HasValue;
+			inputY.HasMultipleValues = !coords[1].HasValue;
+
 #if UNITY_2017_2_OR_NEWER
 			if( isVector2Int )
-				UpdateInputsFromInt();
+				UpdateInputTexts( coords.Cast<float?, int?>() );
+			else
 #endif
-			UpdateInputsFromFloat();
+				UpdateInputTexts( coords );
 		}
 
-		private void UpdateInputsFromInt()
+		private void UpdateInputTexts<T>( IList<T?> coords ) where T : struct, IConvertible
 		{
-			var coords = new int?[3];
-
-			if( Value is MultiValue multiValue )
-			{
-				int count = 0;
-				foreach( Vector2Int v in multiValue )
-				{
-					count++;
-					if( count == 1 )
-					{
-						for( int i = 0; i < coords.Length; i++ )
-							coords[i] = v[i];
-						continue;
-					}
-
-					for( int i = 0; i < coords.Length; i++ )
-					{
-						float? coord = coords[i];
-						if( coord.HasValue )
-							if( coord.Value != v[i] )
-								coords[i] = null;
-					}
-				}
-			}
-			else
-			{
-				var v = (Vector2Int) Value;
-				for( int i = 0; i < coords.Length; i++ )
-					coords[i] = v[i];
-			}
-
-			inputX.HasMultipleValues = !coords[0].HasValue;
-			inputY.HasMultipleValues = !coords[1].HasValue;
-
 			if( coords[0].HasValue )
 				inputX.Text = coords[0].Value.ToString( RuntimeInspectorUtils.numberFormat );
 			if( coords[1].HasValue )
 				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
 		}
 
-		private void UpdateInputsFromFloat()
+		private bool OnValueChanged( BoundInputField source, string input )
 		{
-			var coords = new float?[2];
+			bool couldParse;
+			float value;
 
-			if( Value is MultiValue multiValue )
+#if UNITY_2017_2_OR_NEWER
+			if( isVector2Int )
 			{
-				int count = 0;
-				foreach( Vector2 v in multiValue )
-				{
-					count++;
-					if( count == 1 )
-					{
-						for( int i = 0; i < coords.Length; i++ )
-							coords[i] = v[i];
-						continue;
-					}
-
-					for( int i = 0; i < coords.Length; i++ )
-					{
-						float? coord = coords[i];
-						if( coord.HasValue )
-							if( coord.Value != v[i] )
-								coords[i] = null;
-					}
-				}
+					int intval;
+					couldParse = int.TryParse( input, NumberStyles.Integer, RuntimeInspectorUtils.numberFormat, out intval );
+					value = intval;
 			}
 			else
+#endif
+			couldParse = float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out value );
+
+			if( !couldParse )
+					return false;
+
+			int coord = source == inputX ? 0 : 1;
+			var newVs = new List<Vector2>();
+
+			foreach( Vector2 oldV in BoundValues )
 			{
-				var v = (Vector2) Value;
-				for( int i = 0; i < coords.Length; i++ )
-					coords[i] = v[i];
+				Vector2 newV = oldV;
+				newV[coord] = value;
+				newVs.Add( newV );
 			}
 
-			inputX.HasMultipleValues = !coords[0].HasValue;
-			inputY.HasMultipleValues = !coords[1].HasValue;
-
-			if( coords[0].HasValue )
-				inputX.Text = coords[0].Value.ToString( RuntimeInspectorUtils.numberFormat );
-			if( coords[1].HasValue )
-				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
+			BoundValues = newVs.AsReadOnly();
+			return true;
 		}
 
-		private bool OnValueSubmitted( string input, int coordinate )
+		private bool OnValueSubmitted( BoundInputField source, string input )
 		{
 			Inspector.RefreshDelayed();
-			return OnValueChanged( input, coordinate );
+			return OnValueChanged( source, input );
 		}
 
 		protected override void OnSkinChanged()

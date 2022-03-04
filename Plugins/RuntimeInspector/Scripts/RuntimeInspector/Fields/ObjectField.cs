@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public class ObjectField : ExpandableInspectorField
+	public class ObjectField : ExpandableInspectorField<object>
 	{
 #pragma warning disable 0649
 		[SerializeField]
@@ -20,7 +20,7 @@ namespace RuntimeInspectorNamespace
 		{
 			get
 			{
-				if( Value.IsNull() )
+				if( BoundValues.Count == 0 )
 				{
 					if( !initializeObjectButton.gameObject.activeSelf )
 						return -1;
@@ -41,28 +41,10 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		private Type ValueType
-		{
-			get
-			{
-				if( Value is MultiValue multiValue )
-				{
-					foreach( object value in multiValue )
-						return value.GetType();
-				}
-				return Value.GetType();
-			}
-		}
-
 		public override void Initialize()
 		{
 			base.Initialize();
 			initializeObjectButton.onClick.AddListener( InitializeObject );
-		}
-
-		public override bool SupportsType( Type type )
-		{
-			return true;
 		}
 
 		protected override void OnBound( MemberInfo variable )
@@ -73,7 +55,7 @@ namespace RuntimeInspectorNamespace
 
 		protected override void GenerateElements()
 		{
-			if( Value.IsNull() )
+			if( BoundValues.All( x => x == null ) )
 			{
 				initializeObjectButton.gameObject.SetActive( CanInitializeNewObject() );
 				return;
@@ -81,7 +63,7 @@ namespace RuntimeInspectorNamespace
 
 			initializeObjectButton.gameObject.SetActive( false );
 
-			if( ( customEditor = RuntimeInspectorUtils.GetCustomEditor( ValueType ) ) != null )
+			if( ( customEditor = RuntimeInspectorUtils.GetCustomEditor( m_boundVariableType ) ) != null )
 				customEditor.GenerateElements( this );
 			else
 				CreateDrawersForVariables();
@@ -112,62 +94,73 @@ namespace RuntimeInspectorNamespace
 				customEditor.Refresh();
 		}
 
-		public void CreateDrawersForVariables()
-		{
-			foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( ValueType ) )
-				CreateDrawerForVariable( variable );
-		}
-
 		public void CreateDrawersForVariables( params string[] variables )
 		{
+			var vars = Inspector.GetExposedVariablesForType( BoundValues[0].GetType() );
+
 			if( variables == null || variables.Length == 0 )
 			{
-				CreateDrawersForVariables();
-				return;
-			}
-
-			foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( ValueType ) )
-			{
-				if( Array.IndexOf( variables, variable.Name ) >= 0 )
+				foreach( MemberInfo variable in vars )
 					CreateDrawerForVariable( variable );
+			}
+			else
+			{
+				foreach( MemberInfo variable in vars )
+				{
+					if( Array.IndexOf( variables, variable.Name ) >= 0 )
+						CreateDrawerForVariable( variable );
+				}
 			}
 		}
 
 		public void CreateDrawersForVariablesExcluding( params string[] variablesToExclude )
 		{
+			var vars = Inspector.GetExposedVariablesForType( BoundValues[0].GetType() );
+
 			if( variablesToExclude == null || variablesToExclude.Length == 0 )
 			{
-				CreateDrawersForVariables();
-				return;
-			}
-
-			foreach( MemberInfo variable in Inspector.GetExposedVariablesForType( ValueType ) )
-			{
-				if( Array.IndexOf( variablesToExclude, variable.Name ) < 0 )
+				foreach( MemberInfo variable in vars )
 					CreateDrawerForVariable( variable );
 			}
+			else
+			{
+				foreach( MemberInfo variable in vars )
+				{
+					if( Array.IndexOf( variablesToExclude, variable.Name ) < 0 )
+						CreateDrawerForVariable( variable );
+				}
+			}
+		}
+
+		private InspectorField CreateDrawerForVariable( MemberInfo variable )
+		{
+				if( variable is FieldInfo )
+						return base.CreateDrawerForVariable( (FieldInfo) variable );
+				if( variable is PropertyInfo )
+						return base.CreateDrawerForVariable( (PropertyInfo) variable );
+				throw new ArgumentException( "Variable can either be a field or a property" );
 		}
 
 		private bool CanInitializeNewObject()
 		{
 #if UNITY_EDITOR || !NETFX_CORE
-			if( BoundVariableType.IsAbstract || BoundVariableType.IsInterface )
+			if( m_boundVariableType.IsAbstract || m_boundVariableType.IsInterface )
 #else
 			if( BoundVariableType.GetTypeInfo().IsAbstract || BoundVariableType.GetTypeInfo().IsInterface )
 #endif
 				return false;
 
-			if( typeof( ScriptableObject ).IsAssignableFrom( BoundVariableType ) )
+			if( typeof( ScriptableObject ).IsAssignableFrom( m_boundVariableType ) )
 				return true;
 
-			if( typeof( UnityEngine.Object ).IsAssignableFrom( BoundVariableType ) )
+			if( typeof( UnityEngine.Object ).IsAssignableFrom( m_boundVariableType ) )
 				return false;
 
-			if( BoundVariableType.IsArray )
+			if( m_boundVariableType.IsArray )
 				return false;
 
 #if UNITY_EDITOR || !NETFX_CORE
-			if( BoundVariableType.IsGenericType && BoundVariableType.GetGenericTypeDefinition() == typeof( List<> ) )
+			if( m_boundVariableType.IsGenericType && m_boundVariableType.GetGenericTypeDefinition() == typeof( List<> ) )
 #else
 			if( BoundVariableType.GetTypeInfo().IsGenericType && BoundVariableType.GetGenericTypeDefinition() == typeof( List<> ) )
 #endif
@@ -180,7 +173,7 @@ namespace RuntimeInspectorNamespace
 		{
 			if( CanInitializeNewObject() )
 			{
-				Value = BoundVariableType.Instantiate();
+				BoundValues = new object[] { m_boundVariableType.Instantiate() }.AsReadOnly();
 
 				RegenerateElements();
 				IsExpanded = true;

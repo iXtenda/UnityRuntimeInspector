@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public class EnumField : InspectorField
+	public class EnumField : InspectorField<int>
 	{
 #pragma warning disable 0649
 		[SerializeField]
@@ -35,7 +34,7 @@ namespace RuntimeInspectorNamespace
 		private Text templateText;
 
 		[SerializeField]
-		protected TMP_Dropdown input;
+		private Dropdown input;
 
 		[SerializeField]
 		private Text multiValueText;
@@ -44,8 +43,8 @@ namespace RuntimeInspectorNamespace
 		private static readonly Dictionary<Type, List<string>> enumNames = new Dictionary<Type, List<string>>();
 		private static readonly Dictionary<Type, List<object>> enumValues = new Dictionary<Type, List<object>>();
 
-		protected List<string> currEnumNames;
-		protected List<object> currEnumValues;
+		private List<string> currEnumNames;
+		private List<object> currEnumValues;
 
 		public override void Initialize()
 		{
@@ -71,10 +70,10 @@ namespace RuntimeInspectorNamespace
 		{
 			base.OnBound( variable );
 
-			if( !enumNames.TryGetValue( BoundVariableType, out currEnumNames ) || !enumValues.TryGetValue( BoundVariableType, out currEnumValues ) )
+			if( !enumNames.TryGetValue( m_boundVariableType, out currEnumNames ) || !enumValues.TryGetValue( m_boundVariableType, out currEnumValues ) )
 			{
-				string[] names = Enum.GetNames( BoundVariableType );
-				Array values = Enum.GetValues( BoundVariableType );
+				string[] names = Enum.GetNames( m_boundVariableType );
+				Array values = Enum.GetValues( m_boundVariableType );
 
 				currEnumNames = new List<string>( names.Length );
 				currEnumValues = new List<object>( names.Length );
@@ -85,15 +84,12 @@ namespace RuntimeInspectorNamespace
 					currEnumValues.Add( values.GetValue( i ) );
 				}
 
-				enumNames[BoundVariableType] = currEnumNames;
-				enumValues[BoundVariableType] = currEnumValues;
+				enumNames[m_boundVariableType] = currEnumNames;
+				enumValues[m_boundVariableType] = currEnumValues;
 			}
 
 			input.ClearOptions();
 			input.AddOptions( currEnumNames );
-
-			int valueIndex = currEnumValues.IndexOf( Value );
-			input.SetValueWithoutNotify( valueIndex );
 		}
 
 		protected override void OnInspectorChanged()
@@ -115,7 +111,7 @@ namespace RuntimeInspectorNamespace
 
 		private void OnValueChanged( int input )
 		{
-			Value = currEnumValues[input];
+			BoundValues = new int[] { input }.AsReadOnly();
 			Inspector.RefreshDelayed();
 		}
 
@@ -160,22 +156,22 @@ namespace RuntimeInspectorNamespace
 			( (RectTransform) input.transform ).anchorMin = rightSideAnchorMin;
 		}
 
-		public override void Refresh()
-		{
-			base.Refresh();
-			if( !HasMultipleValues )
-			{
-				int valueIndex = currEnumValues.IndexOf( Value );
-				if( valueIndex != -1 && input.value != valueIndex )
-					input.value = valueIndex;
-			}
-			UpdateMultiValueText( HasMultipleValues );
-		}
-
 		private void UpdateMultiValueText( bool hasMultipleValues )
 		{
 			multiValueText.enabled = hasMultipleValues;
 			input.captionText.enabled = !hasMultipleValues;
+		}
+
+		public override void Refresh()
+		{
+			base.Refresh();
+			int? value = BoundValues.GetSingle();
+
+			UpdateMultiValueText( !value.HasValue );
+			if( value.HasValue )
+			{
+				input.value = value.Value;
+			}
 		}
 
 		protected override void OnIsInteractableChanged()

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -16,7 +17,9 @@ namespace RuntimeInspectorNamespace
 
 		private const string POOL_OBJECT_NAME = "RuntimeInspectorPool";
 
-		public delegate object InspectedObjectChangingDelegate( object previousInspectedObject, object newInspectedObject );
+		public delegate IEnumerable InspectedObjectChangingDelegate(
+				ReadOnlyCollection<object> previousInspectedObjects,
+				ReadOnlyCollection<object> newInspectedObjects);
 		public delegate void ComponentFilterDelegate( GameObject gameObject, List<Component> components );
 
 #pragma warning disable 0649
@@ -164,8 +167,8 @@ namespace RuntimeInspectorNamespace
 				{
 					m_inspectedObjectHeaderVisibility = value;
 
-					if( currentDrawer != null && currentDrawer is ExpandableInspectorField )
-						( (ExpandableInspectorField) currentDrawer ).HeaderVisibility = m_inspectedObjectHeaderVisibility;
+					if( currentDrawer != null && currentDrawer is IExpandableInspectorField )
+						( (IExpandableInspectorField) currentDrawer ).HeaderVisibility = m_inspectedObjectHeaderVisibility;
 				}
 			}
 		}
@@ -221,10 +224,10 @@ namespace RuntimeInspectorNamespace
 		private bool inspectLock = false;
 		private bool isDirty = false;
 
-		private object m_inspectedObject;
-		public object InspectedObject { get { return m_inspectedObject; } }
+		private ReadOnlyCollection<object> m_inspectedObjects;
+		public ReadOnlyCollection<object> InspectedObjects { get { return m_inspectedObjects; } }
 
-		public bool IsBound { get { return !m_inspectedObject.IsNull(); } }
+		public bool IsBound { get { return m_inspectedObjects != null && m_inspectedObjects.Count > 0; } }
 
 		private Canvas m_canvas;
 		public Canvas Canvas { get { return m_canvas; } }
@@ -353,9 +356,9 @@ namespace RuntimeInspectorNamespace
 				if( isDirty )
 				{
 					// Rebind to refresh the exposed variables in Inspector
-					object inspectedObject = m_inspectedObject;
+					IList<object> inspectedObjects = m_inspectedObjects;
 					StopInspectInternal();
-					InspectInternal( inspectedObject );
+					InspectInternal( inspectedObjects );
 
 					isDirty = false;
 					nextRefreshTime = time + m_refreshInterval;
@@ -378,7 +381,7 @@ namespace RuntimeInspectorNamespace
 			if( IsBound )
 			{
 				if( currentDrawer == null )
-					m_inspectedObject = null;
+					m_inspectedObjects = null;
 				else
 					currentDrawer.Refresh();
 			}
@@ -424,39 +427,13 @@ namespace RuntimeInspectorNamespace
 				currentDrawer.Skin = Skin;
 		}
 
-		public void Regenerate()
-		{
-			if( m_isLocked )
-				return;
-
-			object tmp = m_inspectedObject;
-			StopInspect();
-			InspectImpl( tmp, tmp is MultiValue );
-		}
-
-		public void Inspect( IEnumerable obj, bool multiple )
+		public void Inspect<T>( IList<T> obj ) where T : class
 		{
 			if( !m_isLocked )
-				InspectImpl( obj, multiple );
+				InspectInternal( obj );
 		}
 
-		public void Inspect( object obj )
-		{
-			if( !m_isLocked )
-				InspectImpl( obj, false );
-		}
-
-		internal void InspectInternal( IEnumerable obj, bool multiple )
-		{
-			InspectImpl( obj, multiple );
-		}
-
-		internal void InspectInternal( object obj )
-		{
-			InspectImpl( obj, false );
-		}
-
-		private void InspectImpl( object obj, bool multiple )
+		internal void InspectInternal<T>( IList<T> obj ) where T : class
 		{
 			if( inspectLock )
 				return;
@@ -465,100 +442,79 @@ namespace RuntimeInspectorNamespace
 			Initialize();
 
 			if( OnInspectedObjectChanging != null )
-				obj = OnInspectedObjectChanging( m_inspectedObject, obj );
+			{
+				IEnumerable changed = OnInspectedObjectChanging(
+					m_inspectedObjects,
+					obj.Cast<T, object>().AsReadOnly());
 
-			if( m_inspectedObject == obj )
-				return;
+				if( m_inspectedObjects == changed )
+					return;
+
+				if( changed is IList<T> )
+					obj = (IList<T>) changed;
+				else
+					return;
+			}
 
 			StopInspectInternal();
 
 			inspectLock = true;
 			try
 			{
-				if( obj.IsNull() )
-				{
-					m_inspectedObject = null;
+				m_inspectedObjects = obj.Cast<T, object>().AsReadOnly();
+
+				if( obj == null || obj.Count == 0 )
 					return;
-				}
 
-				Type drawerType = obj.GetType();
-
-#if UNITY_EDITOR || !NETFX_CORE
-				if( drawerType.IsValueType )
-#else
-				if( type.GetTypeInfo().IsValueType )
-#endif
-				{
-					m_inspectedObject = null;
-					Debug.LogError( "Can't inspect a value type!" );
+				Type elemType = obj.GetType().GetElementType();
+				if( elemType == null )
 					return;
-				}
 
-				//if( !gameObject.activeSelf )
-				//{
-				//	m_inspectedObject = null;
-				//	Debug.LogError( "Can't inspect while Inspector is inactive!" );
-				//	return;
-				//}
-
-				if( multiple )
-				{
-					object first = null;
-					int count = 0;
-
-					foreach( object entry in (IEnumerable) obj )
-					{
-						count++;
-
-						if( count == 1 )
-						{
-							drawerType = entry.GetType();
-							first = entry;
-							continue;
-						}
-
-						if( drawerType != entry.GetType() )
-						{
-							obj = first;
-							multiple = false;
-							break;
-						}
-					}
-
-					if( count == 1 )
-                    {
-						obj = first;
-						multiple = false;
-                    }
-				}
-
-				m_inspectedObject = multiple ? new MultiValue( (IEnumerable) obj ) : obj;
-
-				InspectorField inspectedObjectDrawer = CreateDrawerForType( drawerType, drawArea, 0, false );
+				InspectorField inspectedObjectDrawer = CreateDrawerForType( elemType, drawArea, 0, false );
 				if( inspectedObjectDrawer != null )
 				{
-					inspectedObjectDrawer.BindTo( drawerType, string.Empty, () => m_inspectedObject, value => m_inspectedObject = value );
-					inspectedObjectDrawer.NameRaw = m_inspectedObject.GetNameWithType();
+					inspectedObjectDrawer.BindTo(
+						elemType,
+						string.Empty,
+						() => m_inspectedObjects.Cast<object, T>().AsReadOnly(),
+						value => m_inspectedObjects = value.Cast<T, object>().AsReadOnly());
+					inspectedObjectDrawer.NameRaw = obj.GetNameWithType();
 					inspectedObjectDrawer.Refresh();
 
-					if( inspectedObjectDrawer is ExpandableInspectorField )
-						( (ExpandableInspectorField) inspectedObjectDrawer ).IsExpanded = true;
+					if( inspectedObjectDrawer is IExpandableInspectorField )
+						( (IExpandableInspectorField) inspectedObjectDrawer ).IsExpanded = true;
 
 					currentDrawer = inspectedObjectDrawer;
-					if( currentDrawer is ExpandableInspectorField )
-						( (ExpandableInspectorField) currentDrawer ).HeaderVisibility = m_inspectedObjectHeaderVisibility;
+					if( currentDrawer is IExpandableInspectorField )
+						( (IExpandableInspectorField) currentDrawer ).HeaderVisibility = m_inspectedObjectHeaderVisibility;
 
-					GameObject go = m_inspectedObject as GameObject;
-					if( !go && m_inspectedObject as Component )
-						go = ( (Component) m_inspectedObject ).gameObject;
+					if( ConnectedHierarchy )
+					{
+						bool success = true;
+						var options = RuntimeHierarchy.SelectOptions.FocusOnSelection;
 
-					// Commented this because we don't want the hierarchy to deselect everything
-					// when we inspect something that the hierarchy doesn't know about
-					//if( ConnectedHierarchy && go && !ConnectedHierarchy.Select( go.transform, RuntimeHierarchy.SelectOptions.FocusOnSelection ) )
-					//	ConnectedHierarchy.Deselect();
+						if( m_inspectedObjects is IList<GameObject> )
+						{
+							// Beware: these are two complete unrelated Select() methods!
+							// One selects objects in the hierarchy, the other is named
+							// after the Linq function.
+							success = ConnectedHierarchy.Select(
+									( (IList<GameObject>) m_inspectedObjects ).Select( go => go.transform ),
+									options);
+						}
+						else if( m_inspectedObjects is IList<Component> )
+						{
+							success = ConnectedHierarchy.Select(
+									( (IList<Component>) m_inspectedObjects ).Select( comp => comp.transform ),
+									options);
+						}
+
+						if( !success )
+							ConnectedHierarchy.Deselect();
+					}
 				}
 				else
-					m_inspectedObject = null;
+					m_inspectedObjects = null;
 			}
 			finally
 			{
@@ -583,15 +539,11 @@ namespace RuntimeInspectorNamespace
 				currentDrawer = null;
 			}
 
-			m_inspectedObject = null;
+			m_inspectedObjects = null;
 			scrollView.verticalNormalizedPosition = 1f;
 
-			// HasBeenSpawned prevents that we call Resources.Load() only
-			// to close a never needed picker again
-			if( ColorPicker.hasBeenSpawned )
-				ColorPicker.Instance.Close();
-			if( ObjectReferencePicker.hasBeenSpawned )
-				ObjectReferencePicker.Instance.Close();
+			ColorPicker.Instance.Close();
+			ObjectReferencePicker.Instance.Close();
 		}
 
 		public InspectorField CreateDrawerForType( Type type, Transform drawerParent, int depth, bool drawObjectsAsFields = true, MemberInfo variable = null )
@@ -636,7 +588,7 @@ namespace RuntimeInspectorNamespace
 				}
 			}
 
-			InspectorField newDrawer = (InspectorField) Instantiate( drawer, drawerParent, false );
+			InspectorField newDrawer = Instantiate( drawer, drawerParent, false );
 			newDrawer.Initialize();
 			return newDrawer;
 		}
@@ -650,7 +602,7 @@ namespace RuntimeInspectorNamespace
 				( !searchReferenceFields && typeToDrawers.TryGetValue( type, out cachedResult ) ) )
 				return cachedResult;
 
-			Dictionary<Type, InspectorField[]> drawersDict = searchReferenceFields ? typeToReferenceDrawers : typeToDrawers;
+			var drawersDict = searchReferenceFields ? typeToReferenceDrawers : typeToDrawers;
 
 			eligibleDrawers.Clear();
 			for( int i = settings.Length - 1; i >= 0; i-- )

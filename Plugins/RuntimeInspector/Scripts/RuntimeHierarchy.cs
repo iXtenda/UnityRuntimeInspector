@@ -293,7 +293,7 @@ namespace RuntimeInspectorNamespace
 					var toInspect = new HashSet<object>();
 					foreach( var s in m_currentSelection )
 						toInspect.Add( s.gameObject );
-					m_connectedInspector.Inspect( toInspect, multiple: true );
+					m_connectedInspector.Inspect( toInspect );
 				}
 			}
 		}
@@ -1435,9 +1435,7 @@ namespace RuntimeInspectorNamespace
 #endif
 
 				if( m_connectedInspector )
-				{
-                    m_connectedInspector.Inspect( selection, multiple: true );
-				}
+					m_connectedInspector.Inspect( m_currentSelection.Select( t => t.gameObject ) );
 
 				if( OnSelectionChanged != null )
 					OnSelectionChanged( m_currentSelection.AsReadOnly() );

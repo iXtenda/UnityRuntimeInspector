@@ -1,27 +1,38 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 namespace RuntimeInspectorNamespace
 {
-	[RequireComponent(typeof(TMP_InputField))]
 	public class BoundInputField : MonoBehaviour
 	{
 		public delegate bool OnValueChangedDelegate( BoundInputField source, string input );
 
 		[SerializeField]
-		private Text multiValuesText;
+		[UnityEngine.Serialization.FormerlySerializedAs("multiValuesText")]
+		private Text multiValueText;
 
 		private bool initialized = false;
 		private bool inputValid = true;
 		private bool inputAltered = false;
 
-		private TMP_InputField inputField;
+		private InputField inputField;
 		private Image inputFieldBackground;
-		public TMP_InputField BackingField { get { return inputField; } }
+		public InputField BackingField { get { return inputField; } }
 
 		[System.NonSerialized]
 		public string DefaultEmptyValue = string.Empty;
+
+		private bool m_hasMultipleValues;
+		public bool HasMultipleValues
+		{
+			get { return m_hasMultipleValues; }
+			set
+			{
+				m_hasMultipleValues = value;
+				if( !inputAltered )
+					OnHasMultipleValuesChanged( value );
+			}
+		}
 
 		[System.NonSerialized]
 		public bool CacheTextOnValueChange = true;
@@ -61,7 +72,7 @@ namespace RuntimeInspectorNamespace
 					inputField.textComponent.SetSkinInputFieldText( m_skin );
 					inputFieldBackground.color = m_skin.InputFieldNormalBackgroundColor;
 
-					var placeholder = inputField.placeholder as TMP_Text;
+					Text placeholder = inputField.placeholder as Text;
 					if( placeholder != null )
 					{
 						float placeholderAlpha = placeholder.color.a;
@@ -72,21 +83,9 @@ namespace RuntimeInspectorNamespace
 						placeholder.color = placeholderColor;
 					}
 
-					if( multiValuesText )
-						multiValuesText.SetSkinInputFieldText( m_skin );
+					if( multiValueText )
+						multiValueText.SetSkinInputFieldText( m_skin );
 				}
-			}
-		}
-
-		private bool m_hasMultipleValues;
-		public bool HasMultipleValues
-		{
-			get { return m_hasMultipleValues; }
-			set
-			{
-				m_hasMultipleValues = value;
-				if( !inputAltered )
-					OnHasMultipleValuesChanged( value );
 			}
 		}
 
@@ -103,10 +102,7 @@ namespace RuntimeInspectorNamespace
 			if( initialized )
 				return;
 
-			inputField = GetComponent<TMP_InputField>();
-			if( inputField == null )
-				return;
-
+			inputField = GetComponent<InputField>();
 			inputFieldBackground = GetComponent<Image>();
 
 			inputField.onValueChanged.AddListener( InputFieldValueChanged );
@@ -167,9 +163,11 @@ namespace RuntimeInspectorNamespace
 
 		private void OnHasMultipleValuesChanged( bool value )
 		{
+			if( value )
+				inputField.text = DefaultEmptyValue;
 			inputField.textComponent.enabled = !value;
-			if( multiValuesText )
-				multiValuesText.gameObject.SetActive( value );
+			if( multiValueText )
+				multiValueText.enabled = value;
 		}
 	}
 }

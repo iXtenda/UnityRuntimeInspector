@@ -1,11 +1,9 @@
-﻿using System;
-using System.Reflection;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public class BoolField : InspectorField
+	public class BoolField : InspectorField<bool>
 	{
 #pragma warning disable 0649
 		[SerializeField]
@@ -15,7 +13,7 @@ namespace RuntimeInspectorNamespace
 		private Toggle input;
 
 		[SerializeField]
-		private Image multiValuesMark;
+		private Image multiValueImage;
 #pragma warning restore 0649
 
 		public override void Initialize()
@@ -24,26 +22,10 @@ namespace RuntimeInspectorNamespace
 			input.onValueChanged.AddListener( OnValueChanged );
 		}
 
-		public override bool SupportsType( Type type )
-		{
-			return type == typeof( bool );
-		}
-
 		private void OnValueChanged( bool input )
 		{
-			if( HasMultipleValues )
-				Value = true;
-			else
-				Value = input;
-
+			BoundValues = new bool[] { input }.AsReadOnly();
 			Inspector.RefreshDelayed();
-		}
-
-		protected override void OnBound( MemberInfo variable )
-		{
-			base.OnBound( variable );
-			if( !HasMultipleValues )
-				input.SetIsOnWithoutNotify( (bool) Value );
 		}
 
 		protected override void OnSkinChanged()
@@ -52,7 +34,7 @@ namespace RuntimeInspectorNamespace
 
 			toggleBackground.color = Skin.InputFieldNormalBackgroundColor;
 			input.graphic.color = Skin.ToggleCheckmarkColor;
-			multiValuesMark.color = Skin.ToggleCheckmarkColor;
+			multiValueImage.color = Skin.ToggleCheckmarkColor;
 
 			Vector2 rightSideAnchorMin = new Vector2( Skin.LabelWidthPercentage, 0f );
 			variableNameMask.rectTransform.anchorMin = rightSideAnchorMin;
@@ -62,16 +44,16 @@ namespace RuntimeInspectorNamespace
 		private void SwitchMarks( bool hasMultipleValues )
 		{
 			input.graphic.enabled = !hasMultipleValues;
-			multiValuesMark.enabled = hasMultipleValues;
+			multiValueImage.enabled = hasMultipleValues;
 		}
 
 		public override void Refresh()
 		{
 			base.Refresh();
-			if( Value is bool b )
+			bool? value = BoundValues.GetSingle();
+			if( value.HasValue )
 			{
-				if( input.isOn != b )
-					input.isOn = b;
+				input.isOn = value.Value;
 				SwitchMarks( false );
 			}
 			else

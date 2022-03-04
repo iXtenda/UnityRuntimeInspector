@@ -1,11 +1,10 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
 using UnityEngine;
-using TMPro;
+using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
 {
-	public class StringField : InspectorField
+	public class StringField : InspectorField<string>
 	{
 		public enum Mode { OnValueChange = 0, OnSubmit = 1 };
 
@@ -38,11 +37,6 @@ namespace RuntimeInspectorNamespace
 			input.DefaultEmptyValue = string.Empty;
 		}
 
-		public override bool SupportsType( Type type )
-		{
-			return type == typeof( string );
-		}
-
 		protected override void OnBound( MemberInfo variable )
 		{
 			base.OnBound( variable );
@@ -63,8 +57,8 @@ namespace RuntimeInspectorNamespace
 
 			if( prevLineCount != lineCount )
 			{
-				input.BackingField.lineType = lineCount > 1 ? TMP_InputField.LineType.MultiLineNewline : TMP_InputField.LineType.SingleLine;
-				input.BackingField.textComponent.alignment = lineCount > 1 ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
+				input.BackingField.lineType = lineCount > 1 ? InputField.LineType.MultiLineNewline : InputField.LineType.SingleLine;
+				input.BackingField.textComponent.alignment = lineCount > 1 ? TextAnchor.UpperLeft : TextAnchor.MiddleLeft;
 
 				OnSkinChanged();
 			}
@@ -79,7 +73,7 @@ namespace RuntimeInspectorNamespace
 		private bool OnValueChanged( BoundInputField source, string input )
 		{
 			if( m_setterMode == Mode.OnValueChange )
-				Value = input;
+				BoundValues = new string[] { input }.AsReadOnly();
 
 			return true;
 		}
@@ -87,7 +81,7 @@ namespace RuntimeInspectorNamespace
 		private bool OnValueSubmitted( BoundInputField source, string input )
 		{
 			if( m_setterMode == Mode.OnSubmit )
-				Value = input;
+				BoundValues = new string[] { input }.AsReadOnly();
 
 			Inspector.RefreshDelayed();
 			return true;
@@ -107,18 +101,19 @@ namespace RuntimeInspectorNamespace
 		{
 			base.Refresh();
 
-			if( HasMultipleValues )
+			string value;
+			if( BoundValues.GetSingle( out value ) )
 			{
-				input.HasMultipleValues = true;
+				if( value == null )
+					input.Text = string.Empty;
+				else
+					input.Text = value;
+
+				input.HasMultipleValues = false;
 			}
 			else
 			{
-				if( Value == null )
-					input.Text = string.Empty;
-				else
-					input.Text = (string) Value;
-
-				input.HasMultipleValues = false;
+				input.HasMultipleValues = true;
 			}
 		}
 
