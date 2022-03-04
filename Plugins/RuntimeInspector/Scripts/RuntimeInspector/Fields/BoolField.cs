@@ -43,7 +43,7 @@ namespace RuntimeInspectorNamespace
 
 		private void SwitchMarks( bool hasMultipleValues )
 		{
-			input.graphic.enabled = !hasMultipleValues;
+			input.graphic.gameObject.SetActive( !hasMultipleValues );
 			multiValueImage.enabled = hasMultipleValues;
 		}
 
