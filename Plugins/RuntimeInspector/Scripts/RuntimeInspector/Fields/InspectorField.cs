@@ -729,11 +729,14 @@ namespace RuntimeInspectorNamespace
 			string variableName,
 			Func<T, TChild> getter,
 			Action<T, TChild> setter,
+			Type variableType = null,
 			MemberInfo variable = null,
 			bool drawObjectsAsFields = true) where T : TBinding
 		{
-			return CreateDrawer<TChild>(
-					variableType: typeof( TChild ),
+			if( variableType == null )
+				variableType = typeof( TChild );
+			return CreateDrawer(
+					variableType: variableType,
 					variableName: variableName,
 					getter: x => getter( (T) x ),
 					setter: (x, v) => setter( (T) x, v ),
@@ -748,7 +751,7 @@ namespace RuntimeInspectorNamespace
 			MemberInfo variable = null,
 			bool drawObjectsAsFields = true)
 		{
-			return CreateDrawer(
+			return CreateDrawer<TChild>(
 					variableType: typeof( TChild ),
 					variableName: variableName,
 					getter: getter,
@@ -775,9 +778,9 @@ namespace RuntimeInspectorNamespace
 					getter: () => BoundValues.Select( getter ).AsReadOnly(),
 					setter: newChildObjs =>
 					{
-						foreach( TBinding instance in BoundValues )
-							foreach( TChild value in newChildObjs )
-								setter( instance, value );
+						int count = Math.Min( BoundValues.Count, newChildObjs.Count );
+						for (int i = 0; i < count; i++)
+							setter( BoundValues[i], newChildObjs[i] );
 					},
 					variable: variable,
 					drawObjectsAsFields: drawObjectsAsFields);
