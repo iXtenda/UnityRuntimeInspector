@@ -75,7 +75,13 @@ namespace RuntimeInspectorNamespace
 
 		// Here to give custom editors the chance to clear elements without
 		// having to make ClearElements() public
-		public void ClearChildren() => ClearElements();
+		public void ClearChildren()
+		{
+			base.ClearElements();
+
+			if( customEditor != null )
+				customEditor.Cleanup();
+		}
 
 		protected override void ClearElements()
 		{
