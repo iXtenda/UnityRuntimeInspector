@@ -73,6 +73,10 @@ namespace RuntimeInspectorNamespace
 				CreateDrawersForVariables();
 		}
 
+		// Here to give custom editors the chance to clear elements without
+		// having to make ClearElements() public
+		public void ClearChildren() => ClearElements();
+
 		protected override void ClearElements()
 		{
 			base.ClearElements();

@@ -524,17 +524,6 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
-		public void Regenerate()
-		{
-			var tmp = new GameObject[m_inspectedObjects.Count];
-			for (int i = 0; i < m_inspectedObjects.Count; i++)
-			{
-				tmp[i] = (GameObject) m_inspectedObjects[i];
-			}
-
-			Inspect( tmp );
-		}
-
 		public void StopInspect()
 		{
 			if( !m_isLocked )

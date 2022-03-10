@@ -779,8 +779,11 @@ namespace RuntimeInspectorNamespace
 					setter: newChildObjs =>
 					{
 						int count = Math.Min( BoundValues.Count, newChildObjs.Count );
+						bool originallyLocked = Inspector.IsLocked;
+						Inspector.IsLocked = true;
 						for (int i = 0; i < count; i++)
 							setter( BoundValues[i], newChildObjs[i] );
+						Inspector.IsLocked = originallyLocked;
 					},
 					variable: variable,
 					drawObjectsAsFields: drawObjectsAsFields);
