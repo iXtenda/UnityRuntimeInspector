@@ -13,6 +13,13 @@ namespace RuntimeInspectorNamespace
 			text.fontSize = skin.FontSize;
 		}
 
+		public static void SetSkinText( this TMP_Text text, UISkin skin )
+		{
+			text.color = skin.TextColor;
+			// text.font = skin.Font;
+			text.fontSize = skin.FontSize;
+		}
+
 		public static void SetSkinInputFieldText( this TMP_Text text, UISkin skin )
 		{
 			text.color = skin.InputFieldTextColor;
