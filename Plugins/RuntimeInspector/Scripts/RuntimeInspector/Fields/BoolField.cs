@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Reflection;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace RuntimeInspectorNamespace
@@ -28,6 +29,16 @@ namespace RuntimeInspectorNamespace
 			Inspector.RefreshDelayed();
 		}
 
+		protected override void OnBound( MemberInfo variable )
+		{
+			base.OnBound( variable );
+			bool single;
+			if( BoundValues.TryGetSingle( out single ) )
+			{
+				input.SetIsOnWithoutNotify( single );
+			}
+		}
+
 		protected override void OnSkinChanged()
 		{
 			base.OnSkinChanged();
@@ -52,7 +63,7 @@ namespace RuntimeInspectorNamespace
 			base.Refresh();
 
 			bool single;
-			if( BoundValues.TryGetSingle(out single ) )
+			if( BoundValues.TryGetSingle( out single ) )
 			{
 				input.isOn = single;
 				SwitchMarks( false );

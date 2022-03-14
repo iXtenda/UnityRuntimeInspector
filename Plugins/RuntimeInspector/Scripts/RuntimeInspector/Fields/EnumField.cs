@@ -91,6 +91,10 @@ namespace RuntimeInspectorNamespace
 
 			input.ClearOptions();
 			input.AddOptions( currEnumNames );
+
+			int single;
+			if( BoundValues.TryGetSingle( out single ) )
+				input.SetValueWithoutNotify( currEnumValues.IndexOf( single ) );
 		}
 
 		protected override void OnInspectorChanged()
