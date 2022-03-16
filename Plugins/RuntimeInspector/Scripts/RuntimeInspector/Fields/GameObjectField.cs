@@ -297,7 +297,7 @@ namespace RuntimeInspectorNamespace
 						foreach( GameObject o in BoundValues )
 						{
 							// Make sure that RuntimeInspector is still inspecting this GameObject
-							if( Inspector.InspectedObjects.Any( o.Equals ) )
+							if( Inspector.InspectedObjects.Some( o.Equals ) )
 									o.AddComponent( (Type) x );
 						}
 						Inspector.Refresh();

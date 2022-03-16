@@ -63,6 +63,11 @@ namespace RuntimeInspectorNamespace
 		protected Type m_boundVariableType;
 		protected Type m_boundCommonBaseType;
 
+		public Type BoundCommonBaseType
+		{
+			get { return m_boundCommonBaseType; }
+		}
+
 		private int m_depth = -1;
 		public int Depth
 		{

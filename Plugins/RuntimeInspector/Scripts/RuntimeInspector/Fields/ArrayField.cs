@@ -78,7 +78,7 @@ namespace RuntimeInspectorNamespace
 				return;
 
 			int firstCount = BoundValues[0].Count;
-			if( BoundValues.Any( x => x.Count != firstCount ) )
+			if( BoundValues.Some( x => x.Count != firstCount ) )
 				sizeInput.HasMultipleValues = true;
 			else
 			{

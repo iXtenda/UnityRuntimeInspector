@@ -84,7 +84,7 @@ namespace RuntimeInspectorNamespace
 				referenceNameText.text = references.GetNameWithType( m_boundVariableType );
 
 			if( inspectReferenceButton != null )
-				inspectReferenceButton.gameObject.SetActive( BoundValues.Any( x => x != null ) );
+				inspectReferenceButton.gameObject.SetActive( BoundValues.Some( x => x != null ) );
 
 			BoundValues = references.AsReadOnly();
 			Inspector.RefreshDelayed();

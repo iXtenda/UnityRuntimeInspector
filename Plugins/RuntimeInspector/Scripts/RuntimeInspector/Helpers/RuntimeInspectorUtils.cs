@@ -188,7 +188,7 @@ namespace RuntimeInspectorNamespace
 			return true;
 		}
 
-		public static bool Any<T>( this IEnumerable<T> source, Func<T, bool> func )
+		public static bool Some<T>( this IEnumerable<T> source, Func<T, bool> func )
 		{
 			foreach( T item in source )
 				if( func( item ) )
