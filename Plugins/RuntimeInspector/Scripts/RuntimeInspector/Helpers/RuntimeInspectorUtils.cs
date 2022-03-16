@@ -151,11 +151,33 @@ namespace RuntimeInspectorNamespace
 			return result;
 		}
 
-		public static T FirstOrDefault<T>( this IList<T> source )
+		public static Type CommonBaseType( this IEnumerable<Type> types )
 		{
-			if( source.Count == 0 )
-				return default( T );
-			return source[0];
+			Type ret = types.FirstOrDefault();
+			if( ret == null )
+				return null;
+
+			foreach( Type type in types )
+			{
+				if( type.IsAssignableFrom( ret ) )
+				{
+					ret = type;
+				}
+				else
+				{
+					while( !ret.IsAssignableFrom( type ) )
+						ret = ret.BaseType;
+				}
+			}
+
+			return ret;
+		}
+
+		public static T FirstOrDefault<T>( this IEnumerable<T> source )
+		{
+			foreach( T item in source )
+				return item;
+			return default( T );
 		}
 
 		public static bool Each<T>( this IEnumerable<T> source, Func<T, bool> func )

@@ -63,11 +63,8 @@ namespace RuntimeInspectorNamespace
 
 			initializeObjectButton.gameObject.SetActive( false );
 
-			// Use runtime type instead of static type
-			// Type type = m_boundVariableType;
-			Type type = BoundValues[0].GetType();
-
-			if( ( customEditor = RuntimeInspectorUtils.GetCustomEditor( type ) ) != null )
+			customEditor = RuntimeInspectorUtils.GetCustomEditor( m_boundCommonBaseType );
+			if( customEditor != null )
 				customEditor.GenerateElements( this );
 			else
 				CreateDrawersForVariables();
@@ -110,7 +107,7 @@ namespace RuntimeInspectorNamespace
 
 		public void CreateDrawersForVariables( params string[] variables )
 		{
-			var vars = Inspector.GetExposedVariablesForType( BoundValues[0].GetType() );
+			var vars = Inspector.GetExposedVariablesForType( m_boundCommonBaseType );
 
 			if( variables == null || variables.Length == 0 )
 			{
@@ -129,7 +126,7 @@ namespace RuntimeInspectorNamespace
 
 		public void CreateDrawersForVariablesExcluding( params string[] variablesToExclude )
 		{
-			var vars = Inspector.GetExposedVariablesForType( BoundValues[0].GetType() );
+			var vars = Inspector.GetExposedVariablesForType( m_boundCommonBaseType );
 
 			if( variablesToExclude == null || variablesToExclude.Length == 0 )
 			{

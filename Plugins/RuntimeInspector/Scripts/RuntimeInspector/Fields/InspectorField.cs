@@ -61,6 +61,7 @@ namespace RuntimeInspectorNamespace
 		}
 
 		protected Type m_boundVariableType;
+		protected Type m_boundCommonBaseType;
 
 		private int m_depth = -1;
 		public int Depth
@@ -338,6 +339,11 @@ namespace RuntimeInspectorNamespace
 
 			this.getter = getter;
 			this.setter = setter;
+
+			var types = new HashSet<Type>();
+			foreach( object item in getter() )
+				types.Add( item.GetType() );
+			m_boundCommonBaseType = types.CommonBaseType();
 
 			OnBound( variable );
 		}
