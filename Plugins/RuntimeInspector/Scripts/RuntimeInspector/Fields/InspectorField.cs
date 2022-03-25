@@ -668,6 +668,16 @@ namespace RuntimeInspectorNamespace
 			}
 		}
 
+		public bool RemoveChild( InspectorField child )
+		{
+			if( elements.Remove( child ) )
+			{
+				child.Unbind();
+				return true;
+			}
+			return false;
+		}
+
 		protected virtual void ClearElements()
 		{
 			for( int i = 0; i < elements.Count; i++ )
