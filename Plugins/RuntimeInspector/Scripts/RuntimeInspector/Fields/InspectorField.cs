@@ -405,6 +405,8 @@ namespace RuntimeInspectorNamespace
 		protected virtual void OnUnbound()
 		{
 			m_boundObjects = new TBinding[0].AsReadOnly();
+			if (!IsInteractable)
+				IsInteractable = true;
 		}
 
 		public override void Refresh()
@@ -562,7 +564,6 @@ namespace RuntimeInspectorNamespace
 
 			IsExpanded = false;
 			HeaderVisibility = RuntimeInspector.HeaderVisibility.Collapsible;
-			IsInteractable = true;
 
 			ClearElements();
 		}
@@ -717,10 +718,7 @@ namespace RuntimeInspectorNamespace
 					variableName = componentType.Name + " component";
 
 				variableDrawer.BindTo( componentType, string.Empty, () => components.AsReadOnly(), ( value ) => { } );
-				variableDrawer.IsInteractable = IsInteractable;
-				variableDrawer.NameRaw = variableName;
-
-				elements.Add( variableDrawer );
+				AfterCreateDrawerFor( variableDrawer, variableName );
 			}
 
 			return variableDrawer;
@@ -732,10 +730,7 @@ namespace RuntimeInspectorNamespace
 			if( variableDrawer != null )
 			{
 				variableDrawer.BindTo( this, variable, variableName == null ? null : string.Empty );
-				if( variableName != null )
-					variableDrawer.NameRaw = variableName;
-
-				elements.Add( variableDrawer );
+				AfterCreateDrawerFor( variableDrawer, variableName );
 			}
 
 			return variableDrawer;
@@ -747,14 +742,22 @@ namespace RuntimeInspectorNamespace
 			if( variableDrawer != null )
 			{
 				variableDrawer.BindTo( this, variable, variableName == null ? null : string.Empty );
-				variableDrawer.IsInteractable = IsInteractable;
-				if( variableName != null )
-					variableDrawer.NameRaw = variableName;
-
-				elements.Add( variableDrawer );
+				AfterCreateDrawerFor( variableDrawer, variableName );
 			}
 
 			return variableDrawer;
+		}
+
+		/// <summary>
+		/// Bundles common code of CreateDrawerForX methods
+		/// </summary>
+		private void AfterCreateDrawerFor( InspectorField drawer, string variableName )
+		{
+			if (!IsInteractable)
+				drawer.IsInteractable = false;
+			if( variableName != null )
+				drawer.NameRaw = variableName;
+			elements.Add( drawer );
 		}
 
 		// Casting version helpful for IRuntimeInspectorCustomEditor's
@@ -865,7 +868,8 @@ namespace RuntimeInspectorNamespace
 				// directly, we use the overload that casts.
 				drawer.BindTo( variableType, variableName, getter, setter, variable );
 
-			drawer.IsInteractable = IsInteractable;
+			if (!IsInteractable)
+				drawer.IsInteractable = false;
 			elements.Add( drawer );
 			return drawer;
 		}

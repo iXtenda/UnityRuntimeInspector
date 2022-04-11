@@ -187,8 +187,12 @@ namespace RuntimeInspectorNamespace
 		{
 			base.OnIsInteractableChanged();
 			input.interactable = IsInteractable;
-			input.captionText.color = this.GetTextColor();
-			dropdownArrow.color = this.GetTextColor();
+
+			Color color = this.GetTextColor();
+			ColorBlock colors = input.colors;
+			colors.normalColor = color;
+			input.colors = colors;
+			dropdownArrow.color = color;
 		}
 	}
 }

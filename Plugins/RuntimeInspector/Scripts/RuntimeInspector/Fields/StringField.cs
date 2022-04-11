@@ -10,7 +10,7 @@ namespace RuntimeInspectorNamespace
 
 #pragma warning disable 0649
 		[SerializeField]
-		private BoundInputField input;
+		protected BoundInputField input;
 #pragma warning restore 0649
 
 		private Mode m_setterMode = Mode.OnValueChange;
