@@ -28,7 +28,7 @@ namespace RuntimeInspectorNamespace
 			set
 			{
 				m_setterMode = value;
-				input.CacheTextOnValueChange = m_setterMode == Mode.OnValueChange;
+				input.CacheTextOnValueChange = ( m_setterMode & Mode.OnValueChange ) == Mode.OnValueChange;
 			}
 		}
 
@@ -73,14 +73,14 @@ namespace RuntimeInspectorNamespace
 
 		protected bool OnValueEdited( BoundInputField source, string input )
 		{
-			if( m_setterMode != Mode.OnValueChange )
+			if( ( m_setterMode & Mode.OnValueChange ) != Mode.OnValueChange )
 				return false;
 			return OnValueChanged( source, input );
 		}
 
-		private bool OnValueSubmitted( BoundInputField source, string input )
+		protected virtual bool OnValueSubmitted( BoundInputField source, string input )
 		{
-			if( m_setterMode != Mode.OnSubmit )
+			if( ( m_setterMode & Mode.OnSubmit ) != Mode.OnSubmit )
 				return false;
 			Inspector.RefreshDelayed();
 			return OnValueChanged( source, input );

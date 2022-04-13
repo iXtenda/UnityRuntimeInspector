@@ -41,9 +41,9 @@ namespace RuntimeInspectorNamespace
 			set
 			{
 				m_setterMode = value;
-				inputX.CacheTextOnValueChange = value == Mode.OnValueChange;
-				inputY.CacheTextOnValueChange = value == Mode.OnValueChange;
-				inputZ.CacheTextOnValueChange = value == Mode.OnValueChange;
+				inputX.CacheTextOnValueChange = ( value & Mode.OnValueChange ) == Mode.OnValueChange;
+				inputY.CacheTextOnValueChange = ( value & Mode.OnValueChange ) == Mode.OnValueChange;
+				inputZ.CacheTextOnValueChange = ( value & Mode.OnValueChange ) == Mode.OnValueChange;
 			}
 		}
 
@@ -136,19 +136,19 @@ namespace RuntimeInspectorNamespace
 
 		private bool OnValueEdited( BoundInputField source, string input )
 		{
-			if( m_setterMode != Mode.OnValueChange )
+			if( ( m_setterMode & Mode.OnValueChange ) != Mode.OnValueChange )
 				return false;
 			return OnValueChanged( source, input );
 		}
 
-		private bool OnValueSubmitted( BoundInputField source, string input )
+		protected virtual bool OnValueSubmitted( BoundInputField source, string input )
 		{
-			if( m_setterMode != Mode.OnSubmit )
+			if( ( m_setterMode & Mode.OnSubmit ) != Mode.OnSubmit )
 				return false;
 			return OnValueChanged( source, input );
 		}
 
-		private bool OnValueChanged( BoundInputField source, string input )
+		protected bool OnValueChanged( BoundInputField source, string input )
 		{
 			bool couldParse;
 			float value;
@@ -156,16 +156,16 @@ namespace RuntimeInspectorNamespace
 #if UNITY_2017_2_OR_NEWER
 			if( isVector3Int )
 			{
-					int intval;
-					couldParse = int.TryParse( input, NumberStyles.Integer, RuntimeInspectorUtils.numberFormat, out intval );
-					value = intval;
+				int intval;
+				couldParse = int.TryParse( input, NumberStyles.Integer, RuntimeInspectorUtils.numberFormat, out intval );
+				value = intval;
 			}
 			else
 #endif
 			couldParse = float.TryParse( input, NumberStyles.Float, RuntimeInspectorUtils.numberFormat, out value );
 
 			if( !couldParse )
-					return false;
+				return false;
 
 			int coord;
 			if( source == inputX )
