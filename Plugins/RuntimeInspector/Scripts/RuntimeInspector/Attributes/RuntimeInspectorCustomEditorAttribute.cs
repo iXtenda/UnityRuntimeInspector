@@ -18,6 +18,12 @@ namespace RuntimeInspectorNamespace
 			m_editorForChildClasses = editorForChildClasses;
 			m_inspectedTypeDepth = 0;
 
+			if( inspectedType.IsInterface )
+			{
+				m_editorForChildClasses = true;
+				return;
+			}
+
 			while( inspectedType != typeof( object ) )
 			{
 				inspectedType = inspectedType.BaseType;
