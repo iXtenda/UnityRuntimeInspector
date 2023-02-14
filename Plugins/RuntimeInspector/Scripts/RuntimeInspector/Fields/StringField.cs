@@ -6,8 +6,7 @@ namespace RuntimeInspectorNamespace
 {
 	public class StringField : InspectorField<string>
 	{
-		[System.Flags]
-		public enum Mode { OnValueChange = 1, OnSubmit = 2 };
+		public enum Mode { OnValueChange = 0, OnSubmit = 1 };
 
 #pragma warning disable 0649
 		[SerializeField]
@@ -21,7 +20,7 @@ namespace RuntimeInspectorNamespace
 			set
 			{
 				m_setterMode = value;
-				input.CacheTextOnValueChange = ( m_setterMode & Mode.OnValueChange ) == Mode.OnValueChange;
+				input.CacheTextOnValueChange = m_setterMode == Mode.OnValueChange;
 			}
 		}
 
@@ -73,7 +72,7 @@ namespace RuntimeInspectorNamespace
 
 		private bool OnValueChanged( BoundInputField source, string input )
 		{
-			if( (m_setterMode & Mode.OnValueChange) == Mode.OnValueChange )
+			if( m_setterMode == Mode.OnValueChange )
 				BoundValues = new string[] { input }.AsReadOnly();
 
 			return true;
@@ -81,7 +80,7 @@ namespace RuntimeInspectorNamespace
 
 		private bool OnValueSubmitted( BoundInputField source, string input )
 		{
-			if( ( m_setterMode & Mode.OnSubmit ) == Mode.OnSubmit )
+			if( m_setterMode == Mode.OnSubmit )
 				BoundValues = new string[] { input }.AsReadOnly();
 
 			Inspector.RefreshDelayed();
