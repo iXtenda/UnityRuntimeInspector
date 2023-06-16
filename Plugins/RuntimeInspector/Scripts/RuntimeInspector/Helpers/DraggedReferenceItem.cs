@@ -37,7 +37,8 @@ namespace RuntimeInspectorNamespace
 #endif
 
 			m_references = references;
-			label.text = ( references.Length == 1 ) ? references[0].GetNameWithType() : string.Concat( references[0].GetNameWithType(), " (and ", ( references.Length - 1 ).ToString( RuntimeInspectorUtils.numberFormat ), " more)" );
+			string name = references[0] is Object obj ? obj.name : references[0].GetNameWithType();
+			label.text = references.Length == 1 ? name : string.Concat( name, " (and ", ( references.Length - 1 ).ToString( RuntimeInspectorUtils.numberFormat ), " more)" );
 
 			draggingPointer.pointerDrag = gameObject;
 			draggingPointer.dragging = true;
