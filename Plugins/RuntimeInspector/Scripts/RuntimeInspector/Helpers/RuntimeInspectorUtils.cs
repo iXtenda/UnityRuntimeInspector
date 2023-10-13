@@ -1016,11 +1016,15 @@ namespace RuntimeInspectorNamespace
 				// Search all assemblies for type
 				foreach( Assembly assembly in AppDomain.CurrentDomain.GetAssemblies() )
 				{
-					foreach( Type t in assembly.GetTypes() )
+					try
 					{
-						if( t.Name == typeName || t.FullName == typeName )
-							return t;
+						foreach( Type t in assembly.GetTypes() )
+						{
+							if( t.Name == typeName || t.FullName == typeName )
+								return t;
+						}
 					}
+					catch { }
 				}
 #endif
 			}
@@ -1159,6 +1163,7 @@ namespace RuntimeInspectorNamespace
 					}
 					catch( NotSupportedException ) { }
 					catch( System.IO.FileNotFoundException ) { }
+					catch( ReflectionTypeLoadException ) { }
 					catch( Exception e )
 					{
 						Debug.LogError( "Couldn't search assembly for RuntimeInspectorCustomEditor attributes: " + assembly.GetName().Name + "\n" + e.ToString() );
