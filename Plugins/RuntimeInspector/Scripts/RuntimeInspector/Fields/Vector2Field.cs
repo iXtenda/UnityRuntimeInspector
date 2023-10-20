@@ -11,10 +11,10 @@ namespace RuntimeInspectorNamespace
 	{
 #pragma warning disable 0649
 		[SerializeField]
-		private BoundInputField inputX;
+		protected BoundInputField inputX;
 
 		[SerializeField]
-		private BoundInputField inputY;
+		protected BoundInputField inputY;
 
 		[SerializeField]
 		private Text labelX;
