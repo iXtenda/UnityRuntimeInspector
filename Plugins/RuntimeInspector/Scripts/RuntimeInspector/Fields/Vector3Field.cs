@@ -148,7 +148,7 @@ namespace RuntimeInspectorNamespace
 			return OnValueChanged( source, input );
 		}
 
-		private bool OnValueChanged( BoundInputField source, string input )
+		protected virtual bool OnValueChanged( BoundInputField source, string input )
 		{
 			bool couldParse;
 			float value;

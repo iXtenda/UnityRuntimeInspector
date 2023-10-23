@@ -88,7 +88,7 @@ namespace RuntimeInspectorNamespace
 				inputY.Text = coords[1].Value.ToString( RuntimeInspectorUtils.numberFormat );
 		}
 
-		private bool OnValueChanged( BoundInputField source, string input )
+		protected virtual bool OnValueChanged( BoundInputField source, string input )
 		{
 			bool couldParse;
 			float value;
