@@ -25,6 +25,9 @@ namespace RuntimeInspectorNamespace
 
 		[SerializeField]
 		protected Text referenceNameText;
+
+		[SerializeField]
+		private Text multiValueText;
 #pragma warning restore 0649
 
 		public override void Initialize()
@@ -83,7 +86,13 @@ namespace RuntimeInspectorNamespace
 			BoundValues = references.AsReadOnly();
 
 			if( referenceNameText != null )
-				referenceNameText.text = references.GetNameWithType( m_boundVariableType );
+			{
+				bool multipleValues = !BoundValues.TryGetSingle( out Object value );
+				referenceNameText.text = multipleValues ? string.Empty : value.GetNameWithType( m_boundVariableType );
+				referenceNameText.enabled = !multipleValues;
+				if( multiValueText )
+					multiValueText.enabled = multipleValues;
+			}
 
 			if( inspectReferenceButton != null )
 				inspectReferenceButton.gameObject.SetActive( BoundValues.Some( x => x != null ) );
