@@ -133,16 +133,18 @@ namespace RuntimeInspectorNamespace
 				if( elementDrawer == null )
 					break;
 
-					var everyIth = new List<object>();
-					foreach( IList list in BoundValues )
-						everyIth.Add( list[i] );
-
 					int i_copy = i;
 					string variableName = Inspector.ArrayIndicesStartAtOne ? ( ( i + 1 ) + ":" ) : ( i + ":" );
 					elementDrawer.BindTo(
 						variableType: elementType,
 						variableName: variableName,
-						getter: () => everyIth.AsReadOnly(),
+						getter: () =>
+						{
+							var everyIth = new List<object>();
+							foreach( IList list in BoundValues )
+								everyIth.Add( list[i_copy] );
+							return everyIth.AsReadOnly();
+						},
 						setter: everyNewIth =>
 						{
 							int minCount = Math.Min( BoundValues.Count, everyNewIth.Count );
