@@ -347,7 +347,7 @@ namespace RuntimeInspectorNamespace
 
 			var types = new HashSet<Type>();
 			foreach( object item in getter() )
-				types.Add( item.GetType() );
+				types.Add( item?.GetType() );
 			m_boundCommonBaseType = types.CommonBaseType();
 
 			OnBound( variable );
