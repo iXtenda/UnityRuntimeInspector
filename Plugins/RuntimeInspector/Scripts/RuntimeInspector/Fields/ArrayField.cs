@@ -37,7 +37,7 @@ namespace RuntimeInspectorNamespace
 
 				int minCount = int.MaxValue;
 				foreach( var item in BoundValues )
-					minCount = Math.Min( minCount, BoundValues.Count );
+					minCount = Math.Min( minCount, item.Count );
 				return minCount;
 			}
 		}
