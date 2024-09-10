@@ -80,13 +80,14 @@ namespace RuntimeInspectorNamespace
 
 		protected virtual void OnReferenceChanged( IList<Object> references )
 		{
+			BoundValues = references.AsReadOnly();
+
 			if( referenceNameText != null )
 				referenceNameText.text = references.GetNameWithType( m_boundVariableType );
 
 			if( inspectReferenceButton != null )
 				inspectReferenceButton.gameObject.SetActive( BoundValues.Some( x => x != null ) );
 
-			BoundValues = references.AsReadOnly();
 			Inspector.RefreshDelayed();
 		}
 
